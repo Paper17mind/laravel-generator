@@ -13,7 +13,7 @@ class Config extends Directory
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
         error_reporting(E_ALL);
-        $this->db = new SQLite3(__DIR__ . '/../database/database.db');
+        $this->db = new SQLite3(__DIR__ . '/../database/databaseProd.db');
     }
     function response($data, $message)
     {

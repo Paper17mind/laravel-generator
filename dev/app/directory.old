@@ -19,7 +19,7 @@ class Directory extends ArrayObject
     }
     public function schemeQuery($name, $data)
     {
-        $nm = $this->toUpperName($name) . 'Model';
+        $nm = $this->toUpperName($name)."Model";
         return "
             all$nm:[$nm!]! @paginate(defaultCount:20)
             find$nm(id: ID @eq): $nm @find
@@ -31,7 +31,7 @@ class Directory extends ArrayObject
     }
     public function schemeMutation($name, $data)
     {
-        $nm = $this->toUpperName($name) . 'Model';
+        $nm = $this->toUpperName($name)."Model";
         return $this->toMutation($data, $nm);
     }
     public function toUpperName($name)
@@ -213,191 +213,187 @@ class $model extends Model
             $label = $this->toUpperName($c->name);
             $attr = $c->nullable !== 'true' ? 'required :rules="rules"' : '';
             $contents .= "
-            <div class='col-12 col-md-6'>
-                <q-input v-model='editedItem.$c->name' $attr label='$label' filled rounded dense/>
-            </div>";
-            $header .= "{ label: '$label', name: '$c->name', field: '$c->name', sortable: true, align:'left' },";
+            <v-col cols='12' md='6'>
+                <v-text-field v-model='editedItem.$c->name' $attr label='$label' outlined dense/>
+            </v-col>";
+            $header .= "{ text: '$label', value: '$c->name' },";
         }
         return "
 <template>
-	<div>
-		<q-table
-			:columns='headers'
-			:rows='data' :loading='loading' 
-			:filter=\"search\"
-			class='sticky-table'
-			row-key=\"id\"
-			flat
-			dense
-			bordered
-			virtual-scroll>
-			<template #top>
-				<q-bar flat>
-					<div>$title</div>
-					<q-separtor class='q-mx-md' vertical></q-separtor>
-					<q-input v-model='search' label='Search...' rounded filled dense/>
-					<q-space></q-space>
-					<q-btn elevation='0' color='primary' dark class='rounded-lg' @click=\"dialog=true\">
-						New $name
-					</q-btn>
-				</q-bar>
-			</template>
-			<template #body-cell-actions='{ row }'>
-				<q-btn-group rounded flat>
-					<q-btn color='primary' flat round icon='edit' @click='editItem(row)'/>
-					<q-btn color='red' flat round @click='deleteItem(row)' icon='delete'/>
-				</q-btn-group>
-			</template>
-			<template #loading>
-				<q-inner-loading showing color=\"primary\" />
-			</template>
-		</q-table>
-		<q-dialog v-model='dialog' min-width='50vw' position='bottom'>
-			<q-card flat>
-				<q-card-section>
-					<div class='text-h6'>{{ formTitle }}</div>
-				</q-card-section>
-				<q-card-section style=\"max-height: 50vh\" class=\"scroll\">
-					<div class='row q-gutter-sm'>
-						$contents
-					</div>
-				</q-card-section>
-				<q-separator />
-				<q-card-section align='right'>
-					<q-btn color='warning' flat @click='close'>
-						Cancel
-					</q-btn>
-					<q-btn color='success' flat @click='save'>
-						Save
-					</q-btn>
-				</q-card-section>
-			</q-card>
-		</q-dialog>
-	</div>
+    <v-container>
+        <v-data-table
+            :headers='headers'
+            :items='data' :loading='loading' :search='search'
+            class='elevation-1 px-md-2 rounded-lg'>
+            <template v-slot:top>
+                <v-toolbar flat>
+                    <v-toolbar-title>$title</v-toolbar-title>
+                    <v-divider class='mx-4' vertical></v-divider>
+                    <v-text-field v-model='search' label='Search...' class='mt-5' rounded outlined solo placeholder='search'/>
+                    <v-spacer></v-spacer>
+                    <v-dialog v-model='dialog' max-width='800px' scrollable>
+                        <template v-slot:activator='{ on, attrs }'>
+                            <v-btn elevation='0' color='primary' dark class='rounded-lg' v-bind='attrs' v-on='on'>
+                                New $name
+                            </v-btn>
+                        </template>
+                        <v-card flat class='rounded-lg'>
+                            <v-card-title>
+                                <span class='headline'>{{ formTitle }}</span>
+                            </v-card-title>
+                            <v-card-text>
+                                <v-form v-model='valid' lazy-validation>
+                                    <v-row dense>
+                                        $contents
+                                    </v-row>
+                                </v-form>
+                            </v-card-text>
+                            <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn color='warning' class='rounded-lg elevation-0' @click='close'>
+                                    Cancel
+                                </v-btn>
+                                <v-btn color='success' class='rounded-lg elevation-0' @click='save'>
+                                    Save
+                                </v-btn>
+                            </v-card-actions>
+                        </v-card>
+                    </v-dialog>
+                </v-toolbar>
+            </template>
+            <template v-slot:item.actions='{ item }'>
+                <v-chip pill>
+                    <v-icon color='green accent-4' left class='mr-2'@click='editItem(item)'>
+                        mdi-pencil
+                    </v-icon>
+                    <v-divider vertical class='mx-2'/>
+                    <v-icon color='red' right @click='deleteItem(item)'>
+                        mdi-delete
+                    </v-icon>
+                </v-chip>
+            </template>
+            <template v-slot:no-data>
+            <v-card flat class='rounded-lg text-center text-capitalize'>
+                <v-card-text>
+                    <v-icon size='400px' class='d-flex mx-auto my-auto'>mdi-emoticon-sad</v-icon>
+                </v-card-text>
+                <v-card-subtitle class='px-0'>
+                    <div>
+                        there is no data for this table
+                    </div>
+                    <div>
+                        click the 'refresh' button below to try to re call data
+                    </div>
+                </v-card-subtitle>
+                <v-card-actions>
+                    <v-btn color='primary' class='rounded-lg mx-auto' @click='initialize'>
+                        refresh
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+            </template>
+            <template v-slot:loading>
+                <v-skeleton-loader type='table'></v-skeleton-loader>
+            </template>
+        </v-data-table>
+    </v-container>
 </template>
 
 <script>
-	import { api } from \"src/boot/axios\";
-	import { useQuasar } from 'quasar'
-	import {
-		computed,
-		defineComponent,
-		nextTick,
-		onMounted,
-		ref,
-	} from \"@vue/runtime-core\";
-    export default defineComponent({
-			setup(){
-				const \$q = useQuasar()
-				const dialog = ref(false);
-				const search = ref(null);
-				const loading = ref(false);
-				const valid = ref(true);
-				const headers = ref([
-					$header
-					{ label: 'Actions', name: 'actions', field: 'actions', align:'right' }
-				]);
-				const rules = rules: [
-					v => !!v || 'field is required',
-				];
-				const data = ref([]);
-				const editedIndex = ref(-1);
-				const editedItem = ref({});
-				// methods
-				function notif(title,color,e){
-					\$q.notify({
-						message: title,
-						caption: e.response && e.response.data ? e.response.data.message : e,
-						color: color,
-						position:'top-right'
-					});
-				}
-				function initialize () {
-					loading.value = true
-					api.get('/$name').then(res => {
-							data.value = res.data.data
-							loading.value = false
-						})
-						.catch((e) => notif('Error :(', 'red', e))
-				}
-				
-				function editItem(item){
-					editedIndex.value = data.value.indexOf(item)
-					editedItem.value = Object.assign({}, item)
-					dialog.value = true
-				}
+    import axios from 'axios';
+    export default {
+        data: () => ({
+            dialog: false,
+            search:null,
+            loading: false,
+            valid:true,
+            headers: [
+                $header
+                { text: 'Actions', value: 'actions' }
+            ],
+            rules: [
+                v => !!v || 'field is required',
+            ],
+            data: [],
+            editedIndex: -1,
+            editedItem: {},
+        }),
 
-				function deleteItem (item) {
-					const index = data.value.indexOf(item);
-					\$q.dialog({
-						title: 'Please Confirm',
-						message: 'Are you sure you want to delete this item ?',
-						cancel: true,
-						persistent: true
-					}).onOk(() => {
-						loading.value = true;
-						api.delete('/$name/'+item.id)
-							.then(res => {
-								loading.value = false
-								data.value.splice(index, 1)
-							})
-							.catch(e => notif('Error :(', 'red', e))
-					}).onCancel(() => {});
-				}
+        computed: {
+            formTitle () {
+                return this.editedIndex === -1 ? 'New $name' : 'Edit $name'
+            },
+        },
 
-				function close () {
-					dialog.value = false
-					editedItem.value = Object.assign({}, this.defaultItem)
-					editedIndex.value = -1
-					loading.value = false
-				}
+        watch: {
+            dialog (val) {
+                val || this.close()
+            },
+        },
 
-				function save () {
-					this.loading=true
-					if (this.editedIndex > -1) {
-						const id = editedItem.value.id;
-						api.put('/$name/'+id, editedItem.value)
-						.then((res) => {
-								Object.assign(data.value[this.editedIndex], res.data.data)
-								close()
-						})
-						.catch(e => notif('Error','red', e))
-					} else {
-						api.post('/$name', editedItem.value)
-						.then(res => {
-							data.value.push(res.data.data)
-							close()
-						})
-						.catch(e => notif('Error','red', e))
-					}
-				}
-				onMounted(()=> initialize())
-				// response
-				return {
-					dialog,
-					search,
-					loading,
-					valid,
-					headers,
-					rules,
-					data,
-					editedIndex,
-					editedItem,
-					//computed
-					formTitle: computed({ get:()=> editedIndex.value === -1 ? 'Create $name' : 'Edit $name' }),
-					//methods
-					save,
-					close,
-					editItem,
-					deleteItem
-				}
-			},
-			watch: {
-				dialog (val) {
-					val || this.close()
-				},
-			},
-    })
+        created () {
+            this.initialize()
+        },
+
+        methods: {
+            initialize () {
+                this.loading=true
+                axios.get('/$name')
+                .then(res => {
+                    this.data = res.data.data
+                    this.loading=false
+                })
+                .catch(e => e)
+            },
+
+            editItem (item) {
+                this.editedIndex = this.data.indexOf(item)
+                this.editedItem = Object.assign({}, item)
+                this.dialog = true
+            },
+
+            deleteItem (item) {
+                const index = this.data.indexOf(item)
+                const c = confirm('Are you sure you want to delete this item?')
+                if (c){
+                    this.loading=true
+                    axios.delete('/$name/'+item.id)
+                    .then(res => {
+                        this.loading=false
+                        this.data.splice(index, 1)
+                    })
+                    .catch(error => error)
+                }
+            },
+
+            close () {
+                this.dialog = false
+                this.editedItem = Object.assign({}, this.defaultItem)
+                this.editedIndex = -1
+                this.loading=false
+            },
+
+            save () {
+                this.loading=true
+                if (this.editedIndex > -1) {
+                    const id = this.editedItem.id;
+                    axios.put('/$name/'+id, this.editedItem)
+                    .then(res => {
+                        Object.assign(this.data[this.editedIndex], res.data.data)
+                        this.close()
+                    })
+                    .catch(error => error)
+                } else {
+                    axios.post('/$name', this.editedItem)
+                    .then(res => {
+                        this.data.push(res.data.data)
+                        this.close()
+                    })
+                    .catch(error => error)
+                }
+            },
+        },
+    }
     </script>";
     }
     function routes($name)

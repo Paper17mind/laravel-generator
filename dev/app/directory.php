@@ -213,7 +213,7 @@ class $model extends Model
             $label = $this->toUpperName($c->name);
             $attr = $c->nullable !== 'true' ? 'required :rules="rules"' : '';
             $contents .= "
-            <div class='col-12 col-md-6'>
+            <div class='col-12'>
                 <q-input v-model='editedItem.$c->name' $attr label='$label' filled rounded dense/>
             </div>";
             $header .= "{ label: '$label', name: '$c->name', field: '$c->name', sortable: true, align:'left' },";

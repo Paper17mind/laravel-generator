@@ -1,6 +1,6 @@
 const { createApp, ref, onMounted, computed } = Vue;
 
-createApp({
+const app = createApp({
     setup() {
         const projects = ref([]);
         const selectedProject = ref(null);
@@ -34,26 +34,27 @@ createApp({
         const relationships = computed(() => {
             const rels = [];
             tables.value.forEach(table => {
-                table.child.forEach(col => {
-                    if (col.relasi) {
-                        const targetTableName = col.relasi.split(':')[0];
-                        const targetTable = tables.value.find(t => t.name === targetTableName);
-                        if (targetTable) {
-                            rels.push({
-                                id: `${table.id}-${targetTable.id}`,
-                                sourceId: table.id,
-                                targetId: targetTable.id
-                            });
+                if (table.child && Array.isArray(table.child)) {
+                    table.child.forEach(col => {
+                        if (col.relasi) {
+                            const targetTableName = col.relasi.split(':')[0];
+                            const targetTable = tables.value.find(t => t.name === targetTableName);
+                            if (targetTable) {
+                                rels.push({
+                                    id: `${table.id}-${targetTable.id}`,
+                                    sourceId: table.id,
+                                    targetId: targetTable.id
+                                });
+                            }
                         }
-                    }
-                });
+                    });
+                }
             });
             return rels;
         });
 
         const getTableNodePosition = (table) => {
             if (!tablePositions.value[table.id]) {
-                // Initialize position if not set
                 const index = tables.value.findIndex(t => t.id === table.id);
                 tablePositions.value[table.id] = {
                     x: 50 + (index % 4) * 250,
@@ -88,11 +89,9 @@ createApp({
         };
 
         const stopDrag = () => {
-            // Slight delay so the click event sees hasDragged=true
             setTimeout(() => {
                 hasDragged.value = false;
             }, 100);
-            
             dragging.value = null;
             window.removeEventListener('mousemove', onDrag);
             window.removeEventListener('mouseup', stopDrag);
@@ -125,12 +124,10 @@ createApp({
             const source = tablePositions.value[rel.sourceId];
             const target = tablePositions.value[rel.targetId];
             if (!source || !target) return '';
-
-            const sx = source.x + 100 + pan.value.x; // node center
+            const sx = source.x + 100 + pan.value.x;
             const sy = source.y + 50 + pan.value.y;
             const tx = target.x + 100 + pan.value.x;
             const ty = target.y + 50 + pan.value.y;
-
             return `M ${sx} ${sy} C ${sx} ${sy + 50}, ${tx} ${ty - 50}, ${tx} ${ty}`;
         };
 
@@ -154,7 +151,6 @@ createApp({
                 const response = await fetch(`${apiBase}?view=join&parent=tables&child=kolom&key=table_id&where=project_id&param=${selectedProject.value.id}`);
                 const result = await response.json();
                 tables.value = result || [];
-                
                 if (selectedTable.value) {
                     const updated = tables.value.find(t => t.id === selectedTable.value.id);
                     if (updated) {
@@ -177,7 +173,7 @@ createApp({
         };
 
         const selectTable = (table) => {
-            if (hasDragged.value) return; // Prevent selection if just finished dragging
+            if (hasDragged.value) return;
             selectedTable.value = { ...table };
             columns.value = table.child || [];
             previews.value = [];
@@ -255,7 +251,6 @@ createApp({
         const addNewTable = async () => {
             const name = prompt('Enter table name:');
             if (!name) return;
-            
             loading.value = true;
             try {
                 await fetch(`${apiBase}?exec=INSERT INTO tables (name, project_id) VALUES ('${name}', ${selectedProject.value.id})`);
@@ -356,18 +351,15 @@ createApp({
             showWizard.value = false;
             loading.value = true;
             try {
-                // Prepare components state
                 const components = {};
                 backendComponents.value.forEach(c => {
                     components[c.key] = c.enabled;
                 });
-
                 const payload = {
                     backend_framework: selectedProject.value.backend_framework,
                     frontend_framework: selectedProject.value.frontend_framework,
                     components: components
                 };
-
                 const res = await fetch(`${apiBase}?generate=${selectedProject.value.id}&type=project`, {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -381,43 +373,54 @@ createApp({
             }
         };
 
+        const importProject = async ({ type, content }) => {
+            loading.value = true;
+            try {
+                // Determine a default project name from file or content
+                const projectName = prompt('Assign a name for the imported project:', 'Imported Project');
+                if (!projectName) return;
+                
+                const response = await fetch(`${apiBase}?import=true`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: projectName,
+                        type: type,
+                        content: content
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Import successful!');
+                    await fetchProjects();
+                } else {
+                    alert('Import failed: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error importing project:', error);
+            } finally {
+                loading.value = false;
+            }
+        };
+
         onMounted(fetchProjects);
 
         return {
-            projects,
-            selectedProject,
-            tables,
-            selectedTable,
-            columns,
-            loading,
-            previews,
-            activePreviewIndex,
-            fetchPreview,
-            copyCode,
-            selectProject,
-            selectTable,
-            addNewProject,
-            saveProject,
-            deleteProject,
-            addNewTable,
-            saveTable,
-            deleteTable,
-            addColumn,
-            updateColumn,
-            deleteColumn,
-            setRelation,
-            generateCode,
-            projectViewMode,
-            relationships,
-            startPan,
-            onPan,
-            stopPan,
-            startDrag,
-            getTableNodePosition,
-            drawRelationLine,
-            showWizard,
-            backendComponents,
-            confirmGenerate
+            projects, selectedProject, tables, selectedTable, columns, loading,
+            previews, activePreviewIndex, fetchPreview, copyCode,
+            selectProject, selectTable, addNewProject, saveProject, deleteProject,
+            addNewTable, saveTable, deleteTable, addColumn, updateColumn, deleteColumn,
+            setRelation, generateCode, projectViewMode, relationships,
+            startPan, onPan, stopPan, startDrag, getTableNodePosition, drawRelationLine,
+            showWizard, backendComponents, confirmGenerate, importProject
         };
     }
-}).mount('#app');
+});
+
+// Register Components
+app.component('sidebar', Sidebar);
+app.component('table-view', TableView);
+app.component('project-details', ProjectDetails);
+app.component('welcome-view', WelcomeView);
+app.component('wizard-modal', WizardModal);
+
+app.mount('#app');

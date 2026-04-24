@@ -25,25 +25,7 @@ $r = new Router();
 $col = new Kolom();
 $tab = new Table();
 $h = new Handler();
-$arr = [
-    'name' => 'name',
-    'typeData' => 'typeData',
-    'size' => 'size',
-    'enum' => 'enum',
-    'comments' => 'comments',
-    'relasi' => 'relasi',
-    'relasi_id' => 'relasi_id',
-    'id' => 3,
-    'table_id' => 1,
-];
-$arr2 = [
-    'name' => 'asf',
-    'typeData' => '2q',
-    'size' => 'ttyy',
-    'enum' => 'qwrq',
-];
-// $ret = array_intersect_key($arr2, $arr);
-// echo json_encode($ret);
+
 header('Content-Type:application/json');
 
 if (isset($_GET['method'])) {
@@ -53,16 +35,15 @@ if (isset($_GET['method'])) {
         echo $tab->filters($_GET);
     }
 } elseif (isset($_GET['query'])) {
-    // if (Authorize() === 'OK') {
     echo $h->query($_GET['query']);
-    // }
 } elseif (isset($_GET['exec'])) {
-    // if (Authorize() === 'OK') {
     echo $h->execute($_GET['exec']);
-    // }
 } elseif (isset($_GET['preview'])) {
     $data = json_decode(file_get_contents('php://input'));
     echo $h->preview($data, $_GET['project_id']);
+} elseif (isset($_GET['import'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    echo $h->importData($data);
 } elseif (isset($_GET['generate'])) {
     if (isset($_GET['type'])) {
         $wizardData = json_decode(file_get_contents('php://input'), true);
@@ -92,7 +73,6 @@ if (isset($_GET['method'])) {
 
 function Authorize()
 {
-    /*Authorization, this use when user want to run sql directly from frontend*/
     if (array_key_exists('Authorization', getallheaders())) {
         return 'OK';
     } else {

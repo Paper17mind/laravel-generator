@@ -2,7 +2,9 @@
 
 namespace app;
 require_once __DIR__ . '/Query.php';
+require_once __DIR__ . '/Importer.php';
 use app\DB;
+use app\Importer;
 
 class Handler extends DB
 {
@@ -56,5 +58,10 @@ class Handler extends DB
     function preview($data, $projectId)
     {
         return $this->getPreview($data, $projectId);
+    }
+    function importData($data)
+    {
+        $importer = new Importer($this->db);
+        return json_encode($importer->import($data));
     }
 }

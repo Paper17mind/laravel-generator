@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laravel Generator | Premium Dev Tool</title>
+    <title>CodeGen v2 | Premium Dev Tool</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,438 +22,80 @@
             <span class="loader"></span>
         </div>
 
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="mdi mdi-laravel"></i>
-                    <span>Laragen v2</span>
-                </div>
-            </div>
-            <div class="sidebar-nav">
-                <!-- Projects Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">
-                        <span>Projects</span>
-                        <i class="mdi mdi-plus-circle-outline nav-action" title="New Project" @click="addNewProject"></i>
-                    </div>
-                    <div 
-                        v-for="project in projects" 
-                        :key="project.id"
-                        class="nav-item"
-                        :class="{ active: selectedProject && selectedProject.id === project.id }"
-                        @click="selectProject(project)"
-                    >
-                        <i class="mdi mdi-folder-outline"></i>
-                        <span>{{ project.name }}</span>
-                    </div>
-                </div>
+        <sidebar 
+            :projects="projects" 
+            :tables="tables" 
+            :selected-project="selectedProject" 
+            :selected-table="selectedTable"
+            @add-project="addNewProject"
+            @select-project="selectProject"
+            @add-table="addNewTable"
+            @select-table="selectTable"
+            @generate="generateCode"
+        ></sidebar>
 
-                <!-- Tables Section (Only visible if project is selected) -->
-                <div v-if="selectedProject" class="nav-section">
-                    <div class="nav-section-title">
-                        <span>Tables</span>
-                        <i class="mdi mdi-plus-circle-outline nav-action" title="New Table" @click="addNewTable"></i>
-                    </div>
-                    <div 
-                        v-for="table in tables" 
-                        :key="table.id"
-                        class="nav-item"
-                        :class="{ active: selectedTable && selectedTable.id === table.id }"
-                        @click="selectTable(table)"
-                    >
-                        <i class="mdi mdi-table"></i>
-                        <span>{{ table.name }}</span>
-                    </div>
-                    <div v-if="tables.length === 0" style="padding: 0 1rem; color: var(--text-secondary); font-size: 0.8rem; font-style: italic;">
-                        No tables in this project.
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-footer" style="padding: 1.5rem; border-top: 1px solid var(--border);">
-                <button 
-                    class="btn btn-primary" 
-                    style="width: 100%; justify-content: center;" 
-                    :disabled="!selectedProject"
-                    @click="generateCode"
-                >
-                    <i class="mdi mdi-rocket"></i>
-                    Generate Project
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Table View -->
-            <div v-if="selectedTable">
-                <div class="top-bar">
-                    <div class="page-title">
-                        <h1>{{ selectedTable.name }}</h1>
-                        <p>Manage columns and relationships for this table</p>
-                    </div>
-                    <div class="actions">
-                        <button class="btn btn-danger" @click="deleteTable(selectedTable.id)">
-                            <i class="mdi mdi-delete"></i>
-                            Delete Table
-                        </button>
-                    </div>
-                </div>
+            <table-view 
+                v-if="selectedTable"
+                :selected-table="selectedTable"
+                :columns="columns"
+                :previews="previews"
+                :active-preview-index="activePreviewIndex"
+                :loading="loading"
+                @delete-table="deleteTable"
+                @save-table="saveTable"
+                @add-column="addColumn"
+                @update-column="updateColumn"
+                @delete-column="deleteColumn"
+                @set-relation="setRelation"
+                @fetch-preview="fetchPreview"
+                @copy-code="copyCode"
+                @select-preview="(idx) => activePreviewIndex = idx"
+            ></table-view>
 
-                <!-- Table Metadata Card -->
-                <div class="glass-card" style="margin-bottom: 2rem;">
-                    <div class="card-header">
-                        <h2 style="font-size: 1.25rem;">Table Settings</h2>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <div class="input-group">
-                            <label>Table Name</label>
-                            <input type="text" v-model="selectedTable.name" class="form-control" placeholder="e.g. users">
-                        </div>
-                        <div class="input-group">
-                            <label>Display Name</label>
-                            <input type="text" v-model="selectedTable.comments" class="form-control" placeholder="e.g. User Management">
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-                        <button class="btn btn-secondary" @click="saveTable">Save Changes</button>
-                    </div>
-                </div>
+            <project-details 
+                v-else-if="selectedProject"
+                :selected-project="selectedProject"
+                :project-view-mode="projectViewMode"
+                :tables="tables"
+                :relationships="relationships"
+                @delete-project="deleteProject"
+                @save-project="saveProject"
+                @change-view-mode="(mode) => projectViewMode = mode"
+                @select-table="selectTable"
+                @add-table="addNewTable"
+                @start-drag="startDrag"
+                @start-pan="startPan"
+                @on-pan="onPan"
+                @stop-pan="stopPan"
+            ></project-details>
 
-                <!-- Columns Card -->
-                <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
-                    <div class="glass-card">
-                        <div class="card-header">
-                            <h2 style="font-size: 1.25rem;">Columns</h2>
-                            <button class="btn btn-primary" @click="addColumn">
-                                <i class="mdi mdi-plus"></i>
-                                Add Column
-                            </button>
-                        </div>
-                        <div style="overflow-x: auto;">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>Size</th>
-                                        <th>Relation</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="col in columns" :key="col.id">
-                                        <td>
-                                            <input type="text" v-model="col.name" class="form-control" style="padding: 0.4rem 0.75rem;">
-                                        </td>
-                                        <td>
-                                            <select v-model="col.typeData" class="form-control" style="padding: 0.4rem 0.75rem;">
-                                                <option value="string">String</option>
-                                                <option value="integer">Integer</option>
-                                                <option value="bigInteger">Big Integer</option>
-                                                <option value="text">Text</option>
-                                                <option value="date">Date</option>
-                                                <option value="boolean">Boolean</option>
-                                                <option value="enum">Enum</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="text" v-model="col.size" class="form-control" style="padding: 0.4rem 0.75rem; width: 80px;">
-                                        </td>
-                                        <td>
-                                            <div v-if="col.relasi" class="badge badge-info">
-                                                {{ col.relasi }}
-                                            </div>
-                                            <button v-else class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" @click="setRelation(col)">
-                                                Set Relation
-                                            </button>
-                                        </td>
-                                        <td>
-                                            <div style="display: flex; gap: 0.5rem;">
-                                                <button class="btn btn-secondary" style="padding: 0.4rem;" @click="updateColumn(col)">
-                                                    <i class="mdi mdi-check"></i>
-                                                </button>
-                                                <button class="btn btn-danger" style="padding: 0.4rem;" @click="deleteColumn(col.id)">
-                                                    <i class="mdi mdi-trash-can-outline"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="columns.length === 0">
-                                        <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 3rem;">
-                                            No columns found. Add one to get started.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Code Preview Section -->
-                    <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column;">
-                        <div class="card-header" style="margin-bottom: 1rem;">
-                            <h2 style="font-size: 1.1rem;">Code Preview</h2>
-                            <button class="btn btn-secondary" style="padding: 0.4rem;" @click="fetchPreview" title="Refresh Preview">
-                                <i class="mdi mdi-refresh"></i>
-                            </button>
-                        </div>
-                        
-                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
-                            <button 
-                                v-for="(p, index) in previews" 
-                                :key="index"
-                                class="btn" 
-                                :class="activePreviewIndex === index ? 'btn-primary' : 'btn-secondary'"
-                                style="padding: 0.4rem 0.8rem; font-size: 0.8rem; white-space: nowrap;"
-                                @click="activePreviewIndex = index"
-                            >
-                                {{ p.name }}
-                            </button>
-                        </div>
-
-                        <div v-if="previews.length > 0" style="flex: 1; position: relative; background: #000; border-radius: 0.75rem; overflow: hidden;">
-                            <pre style="margin: 0; padding: 1rem; color: #a5d6ff; font-size: 0.8rem; height: 500px; overflow: auto; font-family: 'Fira Code', monospace;">{{ previews[activePreviewIndex].content }}</pre>
-                            <button 
-                                class="btn btn-secondary" 
-                                style="position: absolute; top: 0.5rem; right: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.7rem;"
-                                @click="copyCode(previews[activePreviewIndex].content)"
-                            >
-                                <i class="mdi mdi-content-copy"></i>
-                            </button>
-                        </div>
-                        <div v-else style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-style: italic; font-size: 0.9rem;">
-                            Click refresh to load preview
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Project Details View -->
-            <div v-else-if="selectedProject">
-                <div class="top-bar">
-                    <div class="page-title">
-                        <h1>{{ selectedProject.name }}</h1>
-                        <p>Project Dashboard & Settings</p>
-                    </div>
-                    <div class="actions">
-                        <button class="btn btn-danger" @click="deleteProject(selectedProject.id)">
-                            <i class="mdi mdi-delete"></i>
-                            Delete Project
-                        </button>
-                    </div>
-                </div>
-
-                <div class="glass-card">
-                    <div class="card-header">
-                        <h2 style="font-size: 1.25rem;">Project Settings</h2>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
-                        <div class="input-group">
-                            <label>Project Name</label>
-                            <input type="text" v-model="selectedProject.name" class="form-control" placeholder="e.g. My Awesome Project">
-                        </div>
-                        <div class="input-group">
-                            <label>Backend Framework</label>
-                            <select v-model="selectedProject.backend_framework" class="form-control">
-                                <option value="laravel">Laravel</option>
-                                <option value="nodejs">Node.js</option>
-                                <option value="golang">Go (Coming Soon)</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Frontend Framework</label>
-                            <select v-model="selectedProject.frontend_framework" class="form-control">
-                                <option value="vue3">Vue 3</option>
-                                <option value="react">React</option>
-                                <option value="svelte">Svelte</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-                        <button class="btn btn-secondary" @click="saveProject">Save Project</button>
-                    </div>
-                </div>
-
-                <div class="glass-card" style="margin-top: 2rem;">
-                    <div class="card-header">
-                        <h2 style="font-size: 1.25rem;">Project Data Schema</h2>
-                        <div style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem;">
-                            <button 
-                                class="btn" 
-                                :class="projectViewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
-                                style="padding: 0.3rem 0.75rem; font-size: 0.8rem;"
-                                @click="projectViewMode = 'grid'"
-                            >
-                                <i class="mdi mdi-view-grid"></i> Grid
-                            </button>
-                            <button 
-                                class="btn" 
-                                :class="projectViewMode === 'visual' ? 'btn-primary' : 'btn-secondary'"
-                                style="padding: 0.3rem 0.75rem; font-size: 0.8rem;"
-                                @click="projectViewMode = 'visual'"
-                            >
-                                <i class="mdi mdi-vector-arrange-below"></i> Visual (ERD)
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Grid View -->
-                    <div v-if="projectViewMode === 'grid'" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                        <div 
-                            v-for="table in tables" 
-                            :key="table.id" 
-                            class="glass-card" 
-                            style="padding: 1.5rem; text-align: center; cursor: pointer; border: 1px solid var(--border);"
-                            @click="selectTable(table)"
-                        >
-                            <i class="mdi mdi-table" style="font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem; display: block;"></i>
-                            <span style="font-weight: 500;">{{ table.name }}</span>
-                            <p style="font-size: 0.8rem; color: var(--text-secondary);">{{ table.child?.length || 0 }} Columns</p>
-                        </div>
-                        <div 
-                            class="glass-card" 
-                            style="padding: 1.5rem; text-align: center; cursor: pointer; border: 1px dashed var(--border); display: flex; flex-direction: column; justify-content: center; align-items: center;"
-                            @click="addNewTable"
-                        >
-                            <i class="mdi mdi-plus" style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
-                            <span style="color: var(--text-secondary);">Add New Table</span>
-                        </div>
-                    </div>
-
-                    <!-- Visual ERD View -->
-                    <div v-else class="erd-canvas" ref="erdCanvas" @mousedown="startPan" @mousemove="onPan" @mouseup="stopPan" @mouseleave="stopPan">
-                        <svg class="erd-svg-layer">
-                            <path 
-                                v-for="rel in relationships" 
-                                :key="rel.id" 
-                                :d="drawRelationLine(rel)" 
-                                class="erd-relation-line" 
-                            />
-                        </svg>
-
-                        <div 
-                            v-for="table in tables" 
-                            :key="table.id" 
-                            class="erd-table-node"
-                            :style="getTableNodePosition(table)"
-                            @mousedown.stop="startDrag(table, $event)"
-                            @click.stop="selectTable(table)"
-                        >
-                            <div class="erd-table-header">{{ table.name }}</div>
-                            <div class="erd-table-body">
-                                <div v-for="col in table.child" :key="col.id" class="erd-column-item" :class="{ fk: col.relasi }">
-                                    <span>{{ col.name }}</span>
-                                    <span style="opacity: 0.5;">{{ col.typeData }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="erd-controls">
-                            <span style="color: var(--text-secondary); font-size: 0.75rem;">Drag tables to arrange</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Welcome Screen -->
-            <div v-else style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                <div style="width: 120px; height: 120px; background: rgba(99, 102, 241, 0.1); border-radius: 3rem; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem;">
-                    <i class="mdi mdi-laravel" style="font-size: 4rem; color: var(--accent);"></i>
-                </div>
-                <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to Laragen v2</h1>
-                <p style="color: var(--text-secondary); max-width: 500px; line-height: 1.6;">
-                    Select or create a project to start building your Laravel application with ease.
-                </p>
-                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                    <button class="btn btn-primary" @click="addNewProject" style="padding: 0.8rem 2rem;">
-                        <i class="mdi mdi-plus"></i>
-                        New Project
-                    </button>
-                </div>
-            </div>
+            <welcome-view 
+                v-else 
+                @add-project="addNewProject"
+                @import-project="importProject"
+            ></welcome-view>
         </main>
 
-        <!-- Generation Wizard Modal -->
-        <div v-if="showWizard" class="modal-overlay" @click.self="showWizard = false">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div>
-                        <h2 style="font-size: 1.5rem; color: var(--text-primary);">Generation Wizard</h2>
-                        <p style="font-size: 0.9rem; color: var(--text-secondary);">Configure what you want to generate</p>
-                    </div>
-                    <i class="mdi mdi-close" style="font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);" @click="showWizard = false"></i>
-                </div>
-                
-                <div class="modal-body">
-                    <!-- Backend Settings -->
-                    <div class="wizard-section">
-                        <div class="wizard-section-title">
-                            <i class="mdi mdi-server-network"></i>
-                            <span>Backend Configuration</span>
-                        </div>
-                        <div class="input-group" style="margin-bottom: 1.5rem;">
-                            <label>Framework</label>
-                            <select v-model="selectedProject.backend_framework" class="form-control">
-                                <option value="laravel">Laravel (PHP)</option>
-                                <option value="adonis">Adonis (Node.js)</option>
-                                <option value="express">Express (Node.js)</option>
-                                <option value="go">Go (Fiber/Gin)</option>
-                            </select>
-                        </div>
-                        <div class="options-grid">
-                            <div 
-                                v-for="comp in backendComponents" 
-                                :key="comp.key"
-                                class="option-checkbox"
-                                :class="{ active: comp.enabled }"
-                                @click="comp.enabled = !comp.enabled"
-                            >
-                                <i :class="comp.icon"></i>
-                                <span>{{ comp.label }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Frontend Settings -->
-                    <div class="wizard-section">
-                        <div class="wizard-section-title">
-                            <i class="mdi mdi-application-braces"></i>
-                            <span>Frontend Configuration</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <div class="input-group">
-                                <label>Framework</label>
-                                <select v-model="selectedProject.frontend_framework" class="form-control">
-                                    <option value="vue3">Vue 3 (Composition API)</option>
-                                    <option value="react">React (Hooks)</option>
-                                    <option value="svelte">Svelte</option>
-                                    <option value="html">HTML Vanilla</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>UI Framework</label>
-                                <select class="form-control" disabled>
-                                    <option>Tailwind CSS (Standard)</option>
-                                    <option>Bootstrap 5</option>
-                                    <option>Vanilla CSS</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showWizard = false">Cancel</button>
-                    <button class="btn btn-primary" @click="confirmGenerate">
-                        <i class="mdi mdi-rocket"></i>
-                        Run Generation
-                    </button>
-                </div>
-            </div>
-        </div>
+        <wizard-modal 
+            :show-wizard="showWizard"
+            :selected-project="selectedProject"
+            :backend-components="backendComponents"
+            @close="showWizard = false"
+            @confirm-generate="confirmGenerate"
+        ></wizard-modal>
     </div>
 
+    <!-- Utils -->
+    <script src="assets/js/utils/SQLParser.js"></script>
+    
+    <!-- Components -->
+    <script src="assets/components/Sidebar.js"></script>
+    <script src="assets/components/TableView.js"></script>
+    <script src="assets/components/ProjectDetails.js"></script>
+    <script src="assets/components/WelcomeView.js"></script>
+    <script src="assets/components/WizardModal.js"></script>
+    
     <!-- Application Logic -->
     <script src="assets/js/app.js"></script>
 </body>

@@ -1,0 +1,11 @@
+import Route from '@ioc:Adonis/Core/Route'
+
+Route.group(() => {
+  Route.get('/', async () => {
+    return { hello: 'world' }
+  })
+
+  {% for table in tables %}
+  Route.resource('{{ table.name }}', '{{ table.name|capitalize }}Controller').apiOnly()
+  {% endfor %}
+}).prefix('/api')

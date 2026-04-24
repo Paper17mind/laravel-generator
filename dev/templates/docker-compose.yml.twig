@@ -1,0 +1,54 @@
+services:
+  # 🚀 Backend Service ({{ backend_framework|capitalize }})
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: {{ project_name|lower }}-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE={{ project_name|lower }}
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+  # 🎨 Frontend Service ({{ frontend_framework|capitalize }})
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: {{ project_name|lower }}-web
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+  # 🗄️ Database Service (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: {{ project_name|lower }}-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: {{ project_name|lower }}
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:

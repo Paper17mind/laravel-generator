@@ -1,0 +1,22 @@
+import { createRouter, createWebHistory } from 'vue-router'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/{{ tables[0].name if tables|length > 0 else "dashboard" }}'
+  },
+  {%- for table in tables %}
+  {
+    path: '/{{ table.name }}',
+    name: '{{ table.name }}',
+    component: () => import('./components/{{ table.name|capitalize }}.vue')
+  },
+  {%- endfor %}
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router

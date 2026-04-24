@@ -2,56 +2,81 @@ const express = require('express');
 const router = express.Router();
 const {{ resourceUpper }} = require('../models/{{ resourceUpper }}');
 
-// Index
+// Index with Search, Filters & Pagination
 router.get('/', async (req, res) => {
     try {
-        const data = await {{ resourceUpper }}.find();
-        res.json({ data, message: 'Data retrieved successfully' });
+        let { search, start_date, end_date, page = 1, limit = 15, ...filters } = req.query;
+        let query = {};
+
+        // 🔍 Global Search
+        if (search) {
+            query.$or = [
+                {%- for column in columns %}
+                {%- if column.type == 'string' or column.type == 'text' %}
+                { {{ column.name }}: { $regex: search, $options: 'i' } },
+                {%- endif %}
+                {%- endfor %}
+            ];
+        }
+
+        // 📅 Date Filters
+        if (start_date || end_date) {
+            query.createdAt = {};
+            if (start_date) query.createdAt.$gte = new Date(start_date);
+            if (end_date) query.createdAt.$lte = new Date(end_date);
+        }
+
+        // 🔗 Foreign Key Filters (*_id)
+        {%- for column in columns %}
+        {%- if column.name|slice(-3) == '_id' %}
+        if (req.query.{{ column.name }}) {
+            query.{{ column.name }} = req.query.{{ column.name }};
+        }
+        {%- endif %}
+        {%- endfor %}
+
+        const skip = (page - 1) * limit;
+        const total = await {{ resourceUpper }}.countDocuments(query);
+        const data = await {{ resourceUpper }}.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.json({
+            success: true,
+            data,
+            meta: {
+                total,
+                current_page: parseInt(page),
+                last_page: Math.ceil(total / limit),
+                per_page: parseInt(limit)
+            }
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// Store
+// GET, POST, PUT, DELETE remains consistent
 router.post('/', async (req, res) => {
-    const {{ resourceCamel }} = new {{ resourceUpper }}(req.body);
-    try {
-        const newData = await {{ resourceCamel }}.save();
-        res.status(201).json({ data: newData, message: 'Resource created successfully' });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
+    const item = new {{ resourceUpper }}(req.body);
+    try { res.status(201).json({ success: true, data: await item.save() }); } 
+    catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
 
-// Show
 router.get('/:id', async (req, res) => {
-    try {
-        const data = await {{ resourceUpper }}.findById(req.params.id);
-        if (!data) return res.status(404).json({ message: 'Not found' });
-        res.json({ data });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+    try { res.json({ success: true, data: await {{ resourceUpper }}.findById(req.params.id) }); }
+    catch (err) { res.status(404).json({ success: false, message: 'Not found' }); }
 });
 
-// Update
 router.put('/:id', async (req, res) => {
-    try {
-        const data = await {{ resourceUpper }}.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json({ data });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
+    try { res.json({ success: true, data: await {{ resourceUpper }}.findByIdAndUpdate(req.params.id, req.body, { new: true }) }); }
+    catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
 
-// Destroy
 router.delete('/:id', async (req, res) => {
-    try {
-        await {{ resourceUpper }}.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Deleted' });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+    try { await {{ resourceUpper }}.findByIdAndDelete(req.params.id); res.json({ success: true, message: 'Deleted' }); }
+    catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
 module.exports = router;

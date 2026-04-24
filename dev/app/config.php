@@ -41,7 +41,8 @@ class Config
     function createController($data, $projectId, $wizardData = null)
     {
         $project_dir = "../public/$projectId";
-        
+        if (!is_dir($project_dir)) mkdir($project_dir, 0777, true);
+
         $projectQuery = $this->db->query("SELECT * FROM projects WHERE id = $projectId");
         $projectData = $projectQuery->fetchArray(SQLITE3_ASSOC);
         $finalConfigData = array_merge($projectData ?: [], $wizardData ?: []);
@@ -50,70 +51,145 @@ class Config
         $config = $builder->build();
         $backendFramework = $builder->getBackendFramework();
         $frontendFramework = $builder->getFrontendFramework();
-        $components = $config['backend']['components'] ?? [];
-
-        // Structure folders - Hasil akhir dipisah per folder
-        $dirs = [];
-        if ($backendFramework === 'laravel') {
-            if ($components['controller'] ?? true) $dirs[] = "$project_dir/app/Http/Controllers/Api";
-            if ($components['model'] ?? true) $dirs[] = "$project_dir/app/Models";
-            if ($components['routes'] ?? true) $dirs[] = "$project_dir/routes";
-            if ($components['migration'] ?? true) $dirs[] = "$project_dir/database/migrations";
-        } elseif ($backendFramework === 'adonis') {
-            $dirs[] = "$project_dir/app/Controllers/Http";
-            $dirs[] = "$project_dir/app/Models";
-        } elseif ($backendFramework === 'express') {
-            $dirs[] = "$project_dir/src/controllers";
-            $dirs[] = "$project_dir/src/models";
-        } elseif ($backendFramework === 'go' || $backendFramework === 'golang') {
-            $dirs[] = "$project_dir/controllers";
-            $dirs[] = "$project_dir/models";
-            $dirs[] = "$project_dir/services";
-            $dirs[] = "$project_dir/routes";
+        
+        // Fetch ALL tables for this project to build navigation/routes
+        $tables = [];
+        $tablesQuery = $this->db->query("SELECT * FROM tables WHERE project_id = $projectId");
+        while($t = $tablesQuery->fetchArray(SQLITE3_ASSOC)) {
+            // Get columns for each table to enrich the context if needed
+            $tables[] = $t;
         }
 
-        if ($frontendFramework === 'vue3') $dirs[] = "$project_dir/frontend/vue/src/views";
-        if ($frontendFramework === 'react') $dirs[] = "$project_dir/frontend/react/src/components";
+        $projectContext = array_merge($finalConfigData, [
+            'project_name' => $projectData['name'] ?? 'codegen_project',
+            'backend_framework' => $backendFramework,
+            'frontend_framework' => $frontendFramework,
+            'tables' => $tables
+        ]);
 
-        foreach ($dirs as $dir) {
-            if (!is_dir($dir)) mkdir($dir, 0777, true);
-        }
+        // 1. Ensure Base Project Files (Docker, README, App Entry, etc.)
+        $this->ensureBaseProjectFiles($project_dir, $projectContext);
 
+        // 2. Resource Specific Context (The current table being generated)
         $resource = $data->name;
-        $context = [
+        $context = array_merge($projectContext, [
             'resource' => $resource,
             'resourceUpper' => $this->toUpperName($resource),
             'resourcePlural' => $this->toPlural($resource),
             'resourceCamel' => $this->toCamel($resource),
             'columns' => $data->child
-        ];
+        ]);
 
-        // Generation with simplified template path (flat backends style)
+        // 3. Generate Backend Assets
         if ($backendFramework === 'laravel') {
-            if ($components['controller'] ?? true) file_put_contents("$project_dir/app/Http/Controllers/Api/{$context['resourceUpper']}Controller.php", $this->engine->render("backends/laravel/controller.twig", $context));
-            if ($components['model'] ?? true) file_put_contents("$project_dir/app/Models/{$context['resourceUpper']}.php", $this->engine->render("backends/laravel/model.twig", $context));
-            if ($components['migration'] ?? true) file_put_contents("$project_dir/database/migrations/" . date('Y_m_d_His') . "_create_{$resource}_table.php", $this->engine->render("backends/laravel/migration.twig", $context));
-            if ($components['routes'] ?? true) file_put_contents("$project_dir/routes/api.php", $this->engine->render("backends/laravel/routes.twig", $context) . PHP_EOL, FILE_APPEND);
-        } elseif ($backendFramework === 'adonis') {
-            file_put_contents("$project_dir/app/Controllers/Http/{$context['resourceUpper']}Controller.ts", $this->engine->render("backends/adonis/controller.twig", $context));
-            file_put_contents("$project_dir/app/Models/{$context['resourceUpper']}.ts", $this->engine->render("backends/adonis/model.twig", $context));
+            $base = "$project_dir/backend";
+            @mkdir("$base/app/Http/Controllers/Api", 0777, true);
+            @mkdir("$base/app/Models", 0777, true);
+            @mkdir("$base/database/migrations", 0777, true);
+            @mkdir("$base/routes", 0777, true);
+            
+            file_put_contents("$base/app/Http/Controllers/Api/{$context['resourceUpper']}Controller.php", $this->engine->render("backends/laravel/controller.twig", $context));
+            file_put_contents("$base/app/Models/{$context['resourceUpper']}.php", $this->engine->render("backends/laravel/model.twig", $context));
+            file_put_contents("$base/database/migrations/" . date('Y_m_d_His') . "_create_{$resource}_table.php", $this->engine->render("backends/laravel/migration.twig", $context));
+            // For routes, we might want to overwrite or append. Let's overwrite for simplicity in this version
+            file_put_contents("$base/routes/api.php", $this->engine->render("backends/laravel/routes.twig", $context));
         } elseif ($backendFramework === 'express') {
-            file_put_contents("$project_dir/src/controllers/{$context['resourceUpper']}Controller.js", $this->engine->render("backends/express/controller.twig", $context));
-        } elseif ($backendFramework === 'go' || $backendFramework === 'golang') {
-            // Template flat (backends/go/controller.twig), hasil akhir ke file sistem dipecah per folder (controllers/)
-            file_put_contents("$project_dir/controllers/{$context['resourceUpper']}Controller.go", $this->engine->render("backends/go/controller.twig", $context));
-            file_put_contents("$project_dir/models/{$context['resourceUpper']}.go", $this->engine->render("backends/go/model.twig", $context));
-            file_put_contents("$project_dir/services/{$context['resourceUpper']}Service.go", $this->engine->render("backends/go/service.twig", $context));
-            file_put_contents("$project_dir/routes/{$context['resourceUpper']}Routes.go", $this->engine->render("backends/go/routes.twig", $context));
+            $base = "$project_dir/backend";
+            @mkdir("$base/controllers", 0777, true);
+            @mkdir("$base/models", 0777, true);
+            @mkdir("$base/routes", 0777, true);
+
+            file_put_contents("$base/controllers/{$context['resourceUpper']}Controller.js", $this->engine->render("backends/express/controller.twig", $context));
+            file_put_contents("$base/models/{$context['resourceUpper']}.js", $this->engine->render("backends/express/model.twig", $context));
+            file_put_contents("$base/routes/{$resource}.js", $this->engine->render("backends/express/controller.twig", $context)); // Using controller.twig as it contains routes in express template
+        } elseif ($backendFramework === 'go') {
+            $base = "$project_dir/backend";
+            @mkdir("$base/controllers", 0777, true);
+            @mkdir("$base/models", 0777, true);
+            @mkdir("$base/services", 0777, true);
+
+            file_put_contents("$base/controllers/{$context['resourceUpper']}Controller.go", $this->engine->render("backends/go/controller.twig", $context));
+            file_put_contents("$base/models/{$context['resourceUpper']}.go", $this->engine->render("backends/go/model.twig", $context));
+            file_put_contents("$base/services/{$context['resourceUpper']}Service.go", $this->engine->render("backends/go/service.twig", $context));
+        } elseif ($backendFramework === 'adonis') {
+            $base = "$project_dir/backend";
+            @mkdir("$base/app/Controllers/Http", 0777, true);
+            @mkdir("$base/app/Models", 0777, true);
+
+            file_put_contents("$base/app/Controllers/Http/{$context['resourceUpper']}Controller.ts", $this->engine->render("backends/adonis/controller.twig", $context));
+            file_put_contents("$base/app/Models/{$context['resourceUpper']}.ts", $this->engine->render("backends/adonis/model.twig", $context));
         }
+
+        // 4. Generate Frontend Assets
+        $fe_base = "$project_dir/frontend/src/components";
+        if (!is_dir($fe_base)) mkdir($fe_base, 0777, true);
 
         if ($frontendFramework === 'vue3') {
-            file_put_contents("$project_dir/frontend/vue/src/views/{$context['resourceUpper']}.vue", $this->engine->render("frontends/vue3/component.vue.twig", $context));
+            file_put_contents("$fe_base/{$context['resourceUpper']}.vue", $this->engine->render("frontends/vue3/component.vue.twig", $context));
         } elseif ($frontendFramework === 'react') {
-            file_put_contents("$project_dir/frontend/react/src/components/{$context['resourceUpper']}.jsx", $this->engine->render("frontends/react/component.jsx.twig", $context));
+            file_put_contents("$fe_base/{$context['resourceUpper']}List.jsx", $this->engine->render("frontends/react/component.jsx.twig", $context));
+        } elseif ($frontendFramework === 'svelte') {
+            file_put_contents("$fe_base/{$context['resourceUpper']}.svelte", $this->engine->render("frontends/svelte/component.svelte.twig", $context));
         }
 
-        return "Successfully generated assets for $resource using $backendFramework";
+        return "Successfully generated assets for $resource";
+    }
+
+    private function ensureBaseProjectFiles($project_dir, $context)
+    {
+        // Root files
+        file_put_contents("$project_dir/docker-compose.yml", $this->engine->render("docker-compose.yml.twig", $context));
+        file_put_contents("$project_dir/README.md", $this->engine->render("README.md.twig", $context));
+
+        // Backend base
+        $be = "$project_dir/backend";
+        if (!is_dir($be)) mkdir($be, 0777, true);
+        
+        $bf = $context['backend_framework'];
+        if ($bf === 'laravel') {
+            file_put_contents("$be/Dockerfile", $this->engine->render("backends/laravel/Dockerfile.twig", $context));
+            file_put_contents("$be/.env", $this->engine->render("backends/laravel/.env.twig", $context));
+        } elseif ($bf === 'express') {
+            file_put_contents("$be/Dockerfile", $this->engine->render("backends/express/Dockerfile.twig", $context));
+            file_put_contents("$be/app.js", $this->engine->render("backends/express/app.js.twig", $context));
+            file_put_contents("$be/package.json", $this->engine->render("backends/express/package.json.twig", $context));
+        } elseif ($bf === 'go') {
+            file_put_contents("$be/Dockerfile", $this->engine->render("backends/go/Dockerfile.twig", $context));
+            file_put_contents("$be/main.go", $this->engine->render("backends/go/main.go.twig", $context));
+        } elseif ($bf === 'adonis') {
+            @mkdir("$be/start", 0777, true);
+            file_put_contents("$be/Dockerfile", $this->engine->render("backends/adonis/Dockerfile.twig", $context));
+            file_put_contents("$be/.env", $this->engine->render("backends/adonis/.env.twig", $context));
+            file_put_contents("$be/package.json", $this->engine->render("backends/adonis/package.json.twig", $context));
+            file_put_contents("$be/start/routes.ts", $this->engine->render("backends/adonis/routes.ts.twig", $context));
+        }
+
+        // Frontend base
+        $fe = "$project_dir/frontend";
+        if (!is_dir("$fe/src")) mkdir("$fe/src", 0777, true);
+        
+        $ff = $context['frontend_framework'];
+        file_put_contents("$fe/index.html", $this->engine->render("frontends/index.html.twig", $context));
+        file_put_contents("$fe/Dockerfile", $this->engine->render("frontends/Dockerfile.twig", $context));
+
+        if ($ff === 'vue3') {
+            file_put_contents("$fe/src/App.vue", $this->engine->render("frontends/vue3/App.vue.twig", $context));
+            file_put_contents("$fe/src/main.js", $this->engine->render("frontends/vue3/main.js.twig", $context));
+            file_put_contents("$fe/src/router.js", $this->engine->render("frontends/vue3/router.js.twig", $context));
+            file_put_contents("$fe/src/quasar-variables.sass", $this->engine->render("frontends/vue3/quasar-variables.sass.twig", $context));
+            file_put_contents("$fe/package.json", $this->engine->render("frontends/vue3/package.json.twig", $context));
+            file_put_contents("$fe/vite.config.js", $this->engine->render("frontends/vue3/vite.config.js.twig", $context));
+        } elseif ($ff === 'react') {
+            file_put_contents("$fe/src/App.jsx", $this->engine->render("frontends/react/App.jsx.twig", $context));
+            file_put_contents("$fe/src/main.jsx", $this->engine->render("frontends/react/main.jsx.twig", $context));
+            file_put_contents("$fe/package.json", $this->engine->render("frontends/react/package.json.twig", $context));
+            file_put_contents("$fe/vite.config.js", $this->engine->render("frontends/react/vite.config.js.twig", $context));
+        } elseif ($ff === 'svelte') {
+            file_put_contents("$fe/src/App.svelte", $this->engine->render("frontends/svelte/App.svelte.twig", $context));
+            file_put_contents("$fe/src/main.js", $this->engine->render("frontends/svelte/main.js.twig", $context));
+            file_put_contents("$fe/package.json", $this->engine->render("frontends/svelte/package.json.twig", $context));
+            file_put_contents("$fe/vite.config.js", $this->engine->render("frontends/svelte/vite.config.js.twig", $context));
+        }
     }
 
     function getPreview($data, $projectId)

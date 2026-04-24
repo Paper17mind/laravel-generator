@@ -69,8 +69,13 @@ const TableView = {
                                             <option value="bigInteger">Big Integer</option>
                                             <option value="text">Text</option>
                                             <option value="date">Date</option>
+                                            <option value="timestamp">Timestamp</option>
                                             <option value="boolean">Boolean</option>
+                                            <option value="decimal">Decimal</option>
+                                            <option value="float">Float</option>
+                                            <option value="double">Double</option>
                                             <option value="enum">Enum</option>
+                                            <option value="json">JSON</option>
                                         </select>
                                     </td>
                                     <td>

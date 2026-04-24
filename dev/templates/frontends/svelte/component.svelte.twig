@@ -1,96 +1,29 @@
 <script>
     import { onMount } from 'svelte';
-    
     let items = [];
-    let loading = true;
-    let showModal = false;
-    let formData = {
-        {%- for column in columns %}
-        {%- if column.name != 'id' %}
-        {{ column.name }}: '',
-        {%- endif %}
-        {%- endfor %}
-    };
+    {%- for column in columns %}{% if column.name|slice(-3) == '_id' %}
+    let {{ column.name|replace({'_id': ''}) }}Options = [];
+    {%- endif %}{% endfor %}
 
     onMount(async () => {
-        await fetchItems();
+        // ... fetch items ...
+        {%- for column in columns %}
+        {%- if column.name|slice(-3) == '_id' %}
+        const res_{{ column.name }} = await fetch('/api/{{ column.relasi|split(":")|first|default(column.name|replace({"_id":""}) ~ "s") }}');
+        const json_{{ column.name }} = await res_{{ column.name }}.json();
+        {{ column.name|replace({'_id': ''}) }}Options = json_{{ column.name }}.data;
+        {%- endif %}
+        {%- endfor %}
     });
-
-    async function fetchItems() {
-        loading = true;
-        const res = await fetch('/api/{{ resourcePlural }}');
-        const json = await res.json();
-        items = json.data;
-        loading = false;
-    }
-
-    async function saveItem() {
-        const method = formData.id ? 'PUT' : 'POST';
-        const url = formData.id ? `/api/{{ resourcePlural }}/${formData.id}` : '/api/{{ resourcePlural }}';
-        
-        await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-        showModal = false;
-        fetchItems();
-    }
 </script>
 
-<div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">{{ resourceUpper }}</h1>
-        <button on:click={() => { formData = {}; showModal = true; }} class="bg-indigo-600 text-white px-4 py-2 rounded">Add New</button>
-    </div>
-
-    {#if loading}
-        <p>Loading...</p>
-    {:else}
-        <table class="w-full border-collapse">
-            <thead>
-                <tr class="bg-gray-100 text-left">
-                    {%- for column in columns %}
-                    <th class="p-3 border">{{ column.name }}</th>
-                    {%- endfor %}
-                    <th class="p-3 border text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each items as item}
-                    <tr>
-                        {%- for column in columns %}
-                        <td class="p-3 border">{item.{{ column.name }}}</td>
-                        {%- endfor %}
-                        <td class="p-3 border text-right">
-                            <button on:click={() => { formData = item; showModal = true; }} class="text-indigo-600 mr-3">Edit</button>
-                            <button class="text-red-600">Delete</button>
-                        </td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
+<!-- In form -->
+{#each columns as column}
+    {#if column.name.endsWith('_id')}
+        <select bind:value={formData[column.name]}>
+            {#each {{ column.name|replace({'_id':''}) }}Options as opt}
+                <option value={opt.id}>{opt.name || opt.id}</option>
+            {/each}
+        </select>
     {/if}
-</div>
-
-{#if showModal}
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-xl w-[400px]">
-            <h2 class="text-xl font-bold mb-4">{formData.id ? 'Edit' : 'Create'} {{ resourceUpper }}</h2>
-            <form on:submit|preventDefault={saveItem}>
-                {%- for column in columns %}
-                {%- if column.name != 'id' %}
-                <div class="mb-4">
-                    <label class="block text-sm font-medium gray-700">{{ column.name }}</label>
-                    <input type="text" bind:value={formData.{{ column.name }}} class="w-full mt-1 p-2 border rounded" />
-                </div>
-                {%- endif %}
-                {%- endfor %}
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" on:click={() => showModal = false} class="px-4 py-2 text-gray-600">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-{/if}
+{/each}

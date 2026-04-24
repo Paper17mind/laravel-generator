@@ -1,112 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const {{ resourceUpper }}List = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        {%- for column in columns %}
-        {%- if column.name != 'id' %}
-        {{ column.name }}: '',
-        {%- endif %}
-        {%- endfor %}
-    });
+    // Options for FKs
+    {%- for column in columns %}{% if column.name|slice(-3) == '_id' %}
+    const [{{ column.name|replace({'_id': ''}) }}Options, set{{ column.name|replace({'_id': ''})|title }}Options] = useState([]);
+    {%- endif %}{% endfor %}
+    
+    // ... fetchData logic ...
 
     useEffect(() => {
-        fetchItems();
+        {%- for column in columns %}
+        {%- if column.name|slice(-3) == '_id' %}
+        axios.get('/api/{{ column.relasi|split(":")|first|default(column.name|replace({"_id":""}) ~ "s") }}')
+             .then(res => set{{ column.name|replace({'_id': ''})|title }}Options(res.data.data.map(i => ({ label: i.name || i.id, value: i.id }))));
+        {%- endif %}
+        {%- endfor %}
     }, []);
 
-    const fetchItems = async () => {
-        setLoading(true);
-        try {
-            const res = await axios.get('/api/{{ resourcePlural }}');
-            setItems(res.data.data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            if (formData.id) {
-                await axios.put(`/api/{{ resourcePlural }}/${formData.id}`, formData);
-            } else {
-                await axios.post('/api/{{ resourcePlural }}', formData);
-            }
-            setModalOpen(false);
-            fetchItems();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">{{ resourceUpper }} Management</h1>
-            <button 
-                onClick={() => { setFormData({}); setModalOpen(true); }}
-                className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+    // ... inside return, modal form part ...
+    /* 
+    <form>
+        {% for column in columns %}
+        {% if column.name != 'id' %}
+        <div className="mb-4">
+            <label className="block text-sm font-bold mb-2">{{ column.name|title }}</label>
+            {% if column.name|slice(-3) == '_id' %}
+            <select 
+                className="w-full border p-2 rounded"
+                value={formData.{{ column.name }}}
+                onChange={e => setFormData({...formData, {{ column.name }}: e.target.value})}
             >
-                Add {{ resourceUpper }}
-            </button>
-
-            {loading ? <p>Loading...</p> : (
-                <table className="w-full border">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            {%- for column in columns %}
-                            <th className="p-2 border">{{ column.name|upper }}</th>
-                            {%- endfor %}
-                            <th className="p-2 border">ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map(item => (
-                            <tr key={item.id}>
-                                {%- for column in columns %}
-                                <td className="p-2 border">{item.{{ column.name }}}</td>
-                                {%- endfor %}
-                                <td className="p-2 border text-right">
-                                    <button onClick={() => { setFormData(item); setModalOpen(true); }} className="text-blue-600 mr-2">Edit</button>
-                                    <button onClick={() => {/* delete logic */}} className="text-red-600">Delete</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-
-            {modalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-lg w-96">
-                        <h2 className="text-xl mb-4">{formData.id ? 'Edit' : 'Create'} {{ resourceUpper }}</h2>
-                        <form onSubmit={handleSubmit}>
-                            {%- for column in columns %}
-                            {%- if column.name != 'id' %}
-                            <div className="mb-4">
-                                <label className="block mb-1 capitalize">{{ column.name }}</label>
-                                <input 
-                                    className="w-full border p-2"
-                                    value={formData.{{ column.name }} || ''}
-                                    onChange={e => setFormData({...formData, {{ column.name }}: e.target.value})}
-                                />
-                            </div>
-                            {%- endif %}
-                            {%- endfor %}
-                            <div className="flex justify-end gap-2">
-                                <button type="button" onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                <option value="">Select {{ column.name|replace({'_id':''}) }}</option>
+                { {{ column.name|replace({'_id': ''}) }}Options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>) }
+            </select>
+            {% else %}
+            <input className="w-full border p-2 rounded" type="text" value={formData.{{ column.name }}} />
+            {% endif %}
         </div>
-    );
+        {% endif %}
+        {% endfor %}
+    </form>
+    */
 };
-
-export default {{ resourceUpper }}List;

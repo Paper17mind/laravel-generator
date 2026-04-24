@@ -42,7 +42,7 @@ export default function App() {
 
           <div className="p-10">
               <Routes>
-                  <Route path="/" element={<Navigate to="/{{ tables[0].name if tables|length > 0 else '' }}" replace />} />
+                  <Route path="/" element={<Navigate to="/{{ tables|length > 0 ? tables[0].name : '' }}" replace />} />
                   {% for table in tables %}
                   <Route path="/{{ table.name }}" element={<{{ table.name|capitalize }}List />} />
                   {% endfor %}

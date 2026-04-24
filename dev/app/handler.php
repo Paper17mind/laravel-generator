@@ -3,10 +3,10 @@
 namespace app;
 require_once __DIR__ . '/Query.php';
 require_once __DIR__ . '/Importer.php';
-use app\DB;
+use app\Query;
 use app\Importer;
 
-class Handler extends DB
+class Handler extends Query
 {
     public function process(
         $data,

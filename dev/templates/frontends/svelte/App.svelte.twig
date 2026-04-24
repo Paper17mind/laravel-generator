@@ -4,7 +4,7 @@
   import {{ table.name|capitalize }}Component from './components/{{ table.name|capitalize }}.svelte';
   {% endfor %}
 
-  let activeTab = '{{ tables[0].name if tables|length > 0 else "" }}';
+  let activeTab = '{{ tables|length > 0 ? tables[0].name : "" }}';
 </script>
 
 <div class="flex h-screen bg-slate-100 italic-text">

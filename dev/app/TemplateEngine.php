@@ -38,6 +38,10 @@ class TemplateEngine
         $this->twig->addFilter(new TwigFilter('plural', function($str) {
             return $str . 's'; // Simple pluralization for now
         }));
+
+        $this->twig->addFilter(new TwigFilter('base64_encode', function($str) {
+            return base64_encode((string)$str);
+        }));
     }
 
     public function render(string $template, array $context)

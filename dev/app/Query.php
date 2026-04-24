@@ -5,7 +5,7 @@ require __DIR__ . '/config.php';
 use app\Config;
 use SQLite3;
 
-class DB extends Config
+class Query extends Config
 {
     function cmd($q)
     {
@@ -98,6 +98,7 @@ class DB extends Config
             $id
         );
         $decoded = json_decode($arr);
+        $this->deleteDirectory("../public/$id");
         if (is_array($decoded) || is_object($decoded)) {
             foreach ($decoded as $val) {
                 $this->createController($val, $id, $wizardData);
@@ -149,5 +150,16 @@ class DB extends Config
             ];
         }
         return json_encode($arr);
+    }
+
+    public function deleteDirectory($dir)
+    {
+        if (!file_exists($dir)) return true;
+        if (!is_dir($dir)) return unlink($dir);
+        foreach (scandir($dir) as $item) {
+            if ($item == '.' || $item == '..') continue;
+            if (!$this->deleteDirectory($dir . DIRECTORY_SEPARATOR . $item)) return false;
+        }
+        return rmdir($dir);
     }
 }

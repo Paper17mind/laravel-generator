@@ -1,0 +1,20 @@
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Main route
+app.get('/api', (req, res) => res.json({ message: '{{ project_name }} API' }));
+
+// 🚀 Register All Routes Automatically
+{%- for table in tables %}
+app.use('/api/{{ table.name }}', require('./routes/{{ table.name }}'));
+{%- endfor %}
+
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+});

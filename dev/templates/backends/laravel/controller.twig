@@ -1,0 +1,109 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\{{ resourceUpper }};
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+
+class {{ resourceUpper }}Controller extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = {{ resourceUpper }}::query();
+
+        // 🔍 Global Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                {%- for column in columns %}
+                {%- if column.type == 'string' or column.type == 'text' %}
+                $q->orWhere('{{ column.name }}', 'LIKE', "%{$search}%");
+                {%- endif %}
+                {%- endfor %}
+            });
+        }
+
+        // 📅 Date Filters
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        // 🔗 Dynamic Foreign Key Filters (*_id)
+        {%- for column in columns %}
+        {%- if column.name|slice(-3) == '_id' %}
+        if ($request->filled('{{ column.name }}')) {
+            $query->where('{{ column.name }}', $request->{{ column.name }});
+        }
+        {%- endif %}
+        {%- endfor %}
+
+        // 📄 Pagination
+        $perPage = $request->get('per_page', 15);
+        $data = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data->items(),
+            'meta'    => [
+                'total'        => $data->total(),
+                'current_page' => $data->currentPage(),
+                'last_page'    => $data->lastPage(),
+                'per_page'     => $data->perPage(),
+            ],
+            'message' => 'Data retrieved successfully',
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+        {%- for column in columns %}
+        {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+            '{{ column.name }}' => '{% if not column.nullable %}required{% else %}nullable{% endif %}',
+        {%- endif %}
+        {%- endfor %}
+        ]);
+
+        ${{ resourceCamel }} = {{ resourceUpper }}::create($request->all());
+
+        return response()->json([
+            'success' => true,
+            'data'    => ${{ resourceCamel }},
+            'message' => '{{ resourceUpper }} created successfully',
+        ], 201);
+    }
+
+    public function show($id)
+    {
+        ${{ resourceCamel }} = {{ resourceUpper }}::findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'data'    => ${{ resourceCamel }},
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        ${{ resourceCamel }} = {{ resourceUpper }}::findOrFail($id);
+        ${{ resourceCamel }}->update($request->all());
+        return response()->json([
+            'success' => true,
+            'data'    => ${{ resourceCamel }},
+            'message' => '{{ resourceUpper }} updated successfully',
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        {{ resourceUpper }}::findOrFail($id)->delete();
+        return response()->json([
+            'success' => true,
+            'message' => '{{ resourceUpper }} deleted successfully',
+        ]);
+    }
+}

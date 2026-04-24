@@ -1,24 +1,40 @@
-# Laravel and vue project builder
+# CodeGen v2 | Premium AI-Powered Project Generator
 
-save your time to make laravel project,
-with this project you can generate laravel project structure including :
+**CodeGen v2** adalah alat bantu pengembangan (developer tool) modern yang dirancang untuk mempercepat pembuatan struktur project Full-Stack. Sekarang dilengkapi dengan **Architect AI** yang membantu kamu merancang database secara instan.
 
-- Controllers
-- Database Migrations
-- Models
-- Routing
-- Graphql mutation, types, query
+## 🚀 Fitur Utama
 
-for frontend, currently support only for vue js with following framework: 
-- vue2 with [Vuetify](https://vuetifyjs.com)
-- vue3 with [Quasar](https://quasar.dev)
+- **Multi-Framework Backend**: Mendukung pengerjaan project menggunakan [Laravel](https://laravel.com), [AdonisJS](https://adonisjs.com), [Express.js](https://expressjs.com), dan [Go (Fiber/Gin)](https://go.dev).
+- **Modern Frontend**: Mendukung [Vue 3](https://vuejs.org), [React](https://react.dev), dan [Svelte](https://svelte.dev).
+- **Architect AI**: AI Agent terintegrasi (menggunakan Groq API) yang dapat memberikan saran skema tabel dan **langsung menerapkannya** ke project kamu.
+- **Visual ERD Editor**: Kelola tabel dan relasi secara visual dengan diagram interaktif.
+- **Code Preview**: Lihat hasil generate kode (Controller, Model, Migration) secara real-time sebelum di-save.
 
-some configuration required for connecting generated frontend to backend, you must define base url of your backend endpoint.
+## 🤖 Mengaktifkan AI Assistant
 
-###### api to genete project
+Untuk menggunakan fitur AI, kamu perlu mendaftarkan API Key dari [Groq Cloud](https://console.groq.com/):
 
-to generate project, for currently you can type 
-***http://localhost/[folder-name-of-this-file]?generate={id_project}&type=project***
+1. Buka file `dev/.env`.
+2. Masukkan API Key kamu:
+   ```env
+   GROQ_API_KEY=gsk_xxxxxxx...
+   ```
+3. Klik ikon bot di pojok kanan bawah aplikasi untuk mulai bertanya.
 
-after that you can find output object from 
-[public](https://github.com/Paper17mind/laravel-generator/tree/main/public) with folder name of your peoject id
+## 📂 Struktur Project yang Dihasilkan
+
+CodeGen v2 akan secara otomatis membuatkan:
+- **Backend**: Controllers, Models, Migrations, dan Routes.
+- **Frontend**: Components (Vue/React/Svelte) yang sudah terhubung ke API backend.
+- **Infrastructure**: `docker-compose.yml` dan `Dockerfile` untuk deployment instan.
+
+## 🛠️ Cara Penggunaan
+
+1. **Buat Project**: Tambahkan project baru melalui sidebar.
+2. **Rancang Tabel**: Gunakan **Visual ERD** atau minta bantuan **Architect AI**.
+3. **Generate**: Klik tombol **Generate Project** di sidebar.
+4. **Output**: File hasil generate dapat ditemukan di folder `public/{project_id}`.
+
+---
+
+*Dibuat dengan ❤️ untuk mempercepat workflow developer.*

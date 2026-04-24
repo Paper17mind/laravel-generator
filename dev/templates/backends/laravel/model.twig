@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class {{ resourceUpper }} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{ resourcePlural }}';
+
+    protected $fillable = [
+    {%- for column in columns %}
+    {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+        '{{ column.name }}',
+    {%- endif %}
+    {%- endfor %}
+    ];
+
+    protected $casts = [
+    {%- for column in columns %}
+    {%- if column.type == 'boolean' %}
+        '{{ column.name }}' => 'boolean',
+    {%- elseif column.type == 'integer' or column.type == 'bigInteger' %}
+        '{{ column.name }}' => 'integer',
+    {%- elseif column.type == 'decimal' %}
+        '{{ column.name }}' => 'decimal:2',
+    {%- elseif column.type == 'date' %}
+        '{{ column.name }}' => 'date',
+    {%- elseif column.type == 'timestamp' %}
+        '{{ column.name }}' => 'datetime',
+    {%- endif %}
+    {%- endfor %}
+    ];
+
+    {% for column in columns %}
+    {%- if column.relasi %}
+    /**
+     * {{ column.name }} -> {{ column.relasi }}
+     */
+    public function {{ column.name|replace({'_id': ''}) }}()
+    {
+        return $this->belongsTo(\App\Models\{{ column.relasi|split(':')|first|capitalize }}::class, '{{ column.name }}');
+    }
+    {%- endif %}
+    {% endfor %}
+}

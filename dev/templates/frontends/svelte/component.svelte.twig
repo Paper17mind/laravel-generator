@@ -1,0 +1,29 @@
+<script>
+    import { onMount } from 'svelte';
+    let items = [];
+    {%- for column in columns %}{% if column.name|slice(-3) == '_id' %}
+    let {{ column.name|replace({'_id': ''}) }}Options = [];
+    {%- endif %}{% endfor %}
+
+    onMount(async () => {
+        // ... fetch items ...
+        {%- for column in columns %}
+        {%- if column.name|slice(-3) == '_id' %}
+        const res_{{ column.name }} = await fetch('/api/{{ column.relasi|split(":")|first|default(column.name|replace({"_id":""}) ~ "s") }}');
+        const json_{{ column.name }} = await res_{{ column.name }}.json();
+        {{ column.name|replace({'_id': ''}) }}Options = json_{{ column.name }}.data;
+        {%- endif %}
+        {%- endfor %}
+    });
+</script>
+
+<!-- In form -->
+{#each columns as column}
+    {#if column.name.endsWith('_id')}
+        <select bind:value={formData[column.name]}>
+            {#each {{ column.name|replace({'_id':''}) }}Options as opt}
+                <option value={opt.id}>{opt.name || opt.id}</option>
+            {/each}
+        </select>
+    {/if}
+{/each}

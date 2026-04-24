@@ -1,0 +1,20 @@
+package models
+
+import (
+	"time"
+)
+
+type {{ resourceUpper }} struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+{%- for column in columns %}
+{%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' and column.name != 'deleted_at' %}
+	{{ column.name|replace({'_': ' '})|title|replace({' ': ''}) }} {{ column.type == 'integer' or column.type == 'bigInteger' ? 'int64' : column.type == 'decimal' ? 'float64' : column.type == 'boolean' ? 'bool' : column.type == 'date' or column.type == 'timestamp' ? 'time.Time' : 'string' }} `json:"{{ column.name }}" gorm:"column:{{ column.name }}"`
+{%- endif %}
+{%- endfor %}
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func ({{ resourceUpper }}) TableName() string {
+	return "{{ resourcePlural }}"
+}

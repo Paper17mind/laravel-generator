@@ -1,0 +1,22 @@
+import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { DateTime } from 'luxon'
+
+export default class {{ resourceUpper }} extends BaseModel {
+    public static table = '{{ resourcePlural }}'
+
+    @column({ isPrimary: true })
+    public id: number
+
+{% for column in columns %}
+{%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+    @column()
+    public {{ column.name }}: {{ column.type == 'integer' or column.type == 'bigInteger' or column.type == 'decimal' ? 'number' : column.type == 'boolean' ? 'boolean' : 'string' }}
+{% endif %}
+{%- endfor %}
+
+    @column.dateTime({ autoCreate: true })
+    public createdAt: DateTime
+
+    @column.dateTime({ autoCreate: true, autoUpdate: true })
+    public updatedAt: DateTime
+}

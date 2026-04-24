@@ -1,0 +1,25 @@
+const mongoose = require('mongoose');
+
+const {{ resourceUpper }}Schema = new mongoose.Schema({
+{%- for column in columns %}
+{%- if column.name != 'id' %}
+    {{ column.name }}: {
+        type: {%- if column.type == 'integer' or column.type == 'bigInteger' or column.type == 'decimal' %} Number
+              {%- elseif column.type == 'boolean' %} Boolean
+              {%- elseif column.type == 'date' or column.type == 'timestamp' %} Date
+              {%- else %} String
+              {%- endif %},
+        required: {{ not column.nullable ? 'true' : 'false' }},
+        {%- if column.name == 'created_at' or column.name == 'updated_at' %}
+        default: Date.now
+        {%- endif %}
+    },
+{%- endif %}
+{%- endfor %}
+}, { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+module.exports = mongoose.model('{{ resourceUpper }}', {{ resourceUpper }}Schema);

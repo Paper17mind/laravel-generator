@@ -1,0 +1,17 @@
+package routes
+
+import (
+	"project/controllers"
+	"github.com/gin-gonic/gin"
+)
+
+func Register{{ resourceUpper }}Routes(router *gin.Engine) {
+	ctrl := controllers.{{ resourceUpper }}Controller{}
+	
+	v1 := router.Group("/api/v1/{{ resourcePlural }}")
+	{
+		v1.GET("/", ctrl.Index)
+		v1.POST("/", ctrl.Store)
+		v1.GET("/:id", ctrl.Show)
+	}
+}

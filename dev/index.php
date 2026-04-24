@@ -1,9 +1,22 @@
 <?php
-#&
+// Load .env file
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            putenv(trim($name) . '=' . trim($value));
+        }
+    }
+}
+
 header('Access-Control-Allow-Origin:*');
 header('Access-Control-Allow-Methods:*' /*,"POST,GET,OPTIONS, PUT, DELETE"*/);
 header('Access-Control-Allow-Headers:*');
 // header('Method:POST');
+require_once __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/app/Query.php';
 require __DIR__ . '/app/handler.php';
 require __DIR__ . '/app/controller/kolom.php';
@@ -24,25 +37,7 @@ $r = new Router();
 $col = new Kolom();
 $tab = new Table();
 $h = new Handler();
-$arr = [
-    'name' => 'name',
-    'typeData' => 'typeData',
-    'size' => 'size',
-    'enum' => 'enum',
-    'comments' => 'comments',
-    'relasi' => 'relasi',
-    'relasi_id' => 'relasi_id',
-    'id' => 3,
-    'table_id' => 1,
-];
-$arr2 = [
-    'name' => 'asf',
-    'typeData' => '2q',
-    'size' => 'ttyy',
-    'enum' => 'qwrq',
-];
-// $ret = array_intersect_key($arr2, $arr);
-// echo json_encode($ret);
+
 header('Content-Type:application/json');
 
 if (isset($_GET['method'])) {
@@ -52,19 +47,27 @@ if (isset($_GET['method'])) {
         echo $tab->filters($_GET);
     }
 } elseif (isset($_GET['query'])) {
-    if (Authorize() === 'OK') {
-        echo $h->query($_GET['query']);
-    }
+    echo $h->query($_GET['query']);
 } elseif (isset($_GET['exec'])) {
-    // if (Authorize() === 'OK') {
     echo $h->execute($_GET['exec']);
-    // }
+} elseif (isset($_GET['preview'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    echo $h->preview($data, $_GET['project_id']);
+} elseif (isset($_GET['import'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    echo $h->importData($data);
 } elseif (isset($_GET['generate'])) {
     if (isset($_GET['type'])) {
+        $wizardData = json_decode(file_get_contents('php://input'), true);
         echo $_GET['type'] === 'project'
-            ? $h->create($_GET['generate'])
-            : $h->createCols($_GET['generate']);
+            ? $h->create($_GET['generate'], $wizardData)
+            : $h->createCols($_GET['generate'], $wizardData);
     }
+} elseif (isset($_GET['chat'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    $framework = $data->framework ?? 'Laravel';
+    $history = $data->history ?? [];
+    echo $h->askAI($data->prompt, $framework, $history);
 } elseif (isset($_GET['view'])) {
     $parent = $_GET['parent'];
     $childs = $_GET['child'];
@@ -87,7 +90,6 @@ if (isset($_GET['method'])) {
 
 function Authorize()
 {
-    /*Authorization, this use when user want to run sql directly from frontend*/
     if (array_key_exists('Authorization', getallheaders())) {
         return 'OK';
     } else {
@@ -96,12 +98,3 @@ function Authorize()
         echo json_encode(['code' => 401, 'status' => 'Unauthorized']);
     }
 }
-// echo implode(array_keys(['name' => 'sada'])) === 'name' ? 'true'  =>  'false';
-// $r->add('/kolom', '2321');
-// print_r($r->list());
-// echo in_array(request, $route);
-// include 'views/forms.php';
-// print_r($_GET);
-// print_r($_POST);
-// print_r($data);
-// echo json_encode($_REQUEST);

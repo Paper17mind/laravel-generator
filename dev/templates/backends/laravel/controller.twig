@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\{{ resourceUpper }};
 use Illuminate\Http\Request;
 
@@ -9,25 +10,42 @@ class {{ resourceUpper }}Controller extends Controller
 {
     public function index()
     {
+        $data = {{ resourceUpper }}::paginate(15);
         return response()->json([
-            'data' => {{ resourceUpper }}::all(),
-            'message' => 'Data retrieved successfully'
+            'data'    => $data->items(),
+            'meta'    => [
+                'total'        => $data->total(),
+                'current_page' => $data->currentPage(),
+                'last_page'    => $data->lastPage(),
+            ],
+            'message' => 'Data retrieved successfully',
         ]);
     }
 
     public function store(Request $request)
     {
+        $request->validate([
+        {%- for column in columns %}
+        {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+            '{{ column.name }}' => '{% if not column.nullable %}required{% else %}nullable{% endif %}',
+        {%- endif %}
+        {%- endfor %}
+        ]);
+
         ${{ resourceCamel }} = {{ resourceUpper }}::create($request->all());
+
         return response()->json([
-            'data' => ${{ resourceCamel }},
-            'message' => 'Resource created successfully'
+            'data'    => ${{ resourceCamel }},
+            'message' => '{{ resourceUpper }} created successfully',
         ], 201);
     }
 
     public function show($id)
     {
+        ${{ resourceCamel }} = {{ resourceUpper }}::findOrFail($id);
         return response()->json([
-            'data' => {{ resourceUpper }}::findOrFail($id)
+            'data'    => ${{ resourceCamel }},
+            'message' => 'Data retrieved successfully',
         ]);
     }
 
@@ -36,13 +54,16 @@ class {{ resourceUpper }}Controller extends Controller
         ${{ resourceCamel }} = {{ resourceUpper }}::findOrFail($id);
         ${{ resourceCamel }}->update($request->all());
         return response()->json([
-            'data' => ${{ resourceCamel }}
+            'data'    => ${{ resourceCamel }},
+            'message' => '{{ resourceUpper }} updated successfully',
         ]);
     }
 
     public function destroy($id)
     {
         {{ resourceUpper }}::findOrFail($id)->delete();
-        return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'message' => '{{ resourceUpper }} deleted successfully',
+        ]);
     }
 }

@@ -1,48 +1,112 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const {{ resourceUpper }}Management = () => {
+const {{ resourceUpper }}List = () => {
     const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        {%- for column in columns %}
+        {%- if column.name != 'id' %}
+        {{ column.name }}: '',
+        {%- endif %}
+        {%- endfor %}
+    });
 
     useEffect(() => {
-        fetch('/api/{{ resourcePlural }}')
-            .then(res => res.json())
-            .then(json => setItems(json.data));
+        fetchItems();
     }, []);
+
+    const fetchItems = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get('/api/{{ resourcePlural }}');
+            setItems(res.data.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (formData.id) {
+                await axios.put(`/api/{{ resourcePlural }}/${formData.id}`, formData);
+            } else {
+                await axios.post('/api/{{ resourcePlural }}', formData);
+            }
+            setModalOpen(false);
+            fetchItems();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     return (
         <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">{{ resourceUpper }} Management</h1>
-                <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Add New</button>
-            </div>
+            <h1 className="text-2xl font-bold mb-4">{{ resourceUpper }} Management</h1>
+            <button 
+                onClick={() => { setFormData({}); setModalOpen(true); }}
+                className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+            >
+                Add {{ resourceUpper }}
+            </button>
 
-            <div className="overflow-x-auto bg-white rounded-xl shadow">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-bottom">
-                        <tr>
-                            {% for column in columns %}
-                            <th className="px-6 py-3 text-sm font-semibold text-gray-600">{{ column.name|upper }}</th>
-                            {% endfor %}
-                            <th className="px-6 py-3 text-sm font-semibold text-gray-600">ACTIONS</th>
+            {loading ? <p>Loading...</p> : (
+                <table className="w-full border">
+                    <thead>
+                        <tr className="bg-gray-100">
+                            {%- for column in columns %}
+                            <th className="p-2 border">{{ column.name|upper }}</th>
+                            {%- endfor %}
+                            <th className="p-2 border">ACTIONS</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody>
                         {items.map(item => (
                             <tr key={item.id}>
-                                {% for column in columns %}
-                                <td className="px-6 py-4 text-sm text-gray-700">{item.{{ column.name }}}</td>
-                                {% endfor %}
-                                <td className="px-6 py-4 text-sm">
-                                    <button className="text-indigo-600 hover:underline mr-3">Edit</button>
-                                    <button className="text-red-600 hover:underline">Delete</button>
+                                {%- for column in columns %}
+                                <td className="p-2 border">{item.{{ column.name }}}</td>
+                                {%- endfor %}
+                                <td className="p-2 border text-right">
+                                    <button onClick={() => { setFormData(item); setModalOpen(true); }} className="text-blue-600 mr-2">Edit</button>
+                                    <button onClick={() => {/* delete logic */}} className="text-red-600">Delete</button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-            </div>
+            )}
+
+            {modalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg w-96">
+                        <h2 className="text-xl mb-4">{formData.id ? 'Edit' : 'Create'} {{ resourceUpper }}</h2>
+                        <form onSubmit={handleSubmit}>
+                            {%- for column in columns %}
+                            {%- if column.name != 'id' %}
+                            <div className="mb-4">
+                                <label className="block mb-1 capitalize">{{ column.name }}</label>
+                                <input 
+                                    className="w-full border p-2"
+                                    value={formData.{{ column.name }} || ''}
+                                    onChange={e => setFormData({...formData, {{ column.name }}: e.target.value})}
+                                />
+                            </div>
+                            {%- endif %}
+                            {%- endfor %}
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setModalOpen(false)}>Cancel</button>
+                                <button className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-export default {{ resourceUpper }}Management;
+export default {{ resourceUpper }}List;

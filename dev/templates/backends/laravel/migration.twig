@@ -11,17 +11,37 @@ return new class extends Migration
         Schema::create('{{ resourcePlural }}', function (Blueprint $table) {
             $table->id();
         {%- for column in columns %}
-            {%- if column.name != 'id' %}
-            {%- if column.type == 'string' %}
-            $table->string('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
-            {%- elseif column.type == 'text' %}
+        {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' and column.name != 'deleted_at' %}
+        {%- if column.type == 'string' %}
+            $table->string('{{ column.name }}'{% if column.size %}, {{ column.size }}{% endif %}){% if column.nullable %} ->nullable(){% endif %};
+        {%- elseif column.type == 'text' %}
             $table->text('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
-            {%- elseif column.type == 'integer' %}
+        {%- elseif column.type == 'integer' %}
             $table->integer('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
-            {%- endif %}
-            {%- endif %}
+        {%- elseif column.type == 'bigInteger' %}
+            $table->unsignedBigInteger('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
+        {%- elseif column.type == 'decimal' %}
+            $table->decimal('{{ column.name }}'{% if column.size %}, {{ column.size }}{% else %}, 10, 2{% endif %}){% if column.nullable %} ->nullable(){% endif %};
+        {%- elseif column.type == 'boolean' %}
+            $table->boolean('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %} ->default(false);
+        {%- elseif column.type == 'date' %}
+            $table->date('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
+        {%- elseif column.type == 'timestamp' %}
+            $table->timestamp('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
+        {%- elseif column.type == 'enum' %}
+            $table->string('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
+        {%- else %}
+            $table->string('{{ column.name }}'){% if column.nullable %} ->nullable(){% endif %};
+        {%- endif %}
+        {%- if column.relasi %}
+            $table->foreign('{{ column.name }}')->references('{{ column.relasi|split(":")|last }}')->on('{{ column.relasi|split(":")|first }}');
+        {%- endif %}
+        {%- endif %}
         {%- endfor %}
             $table->timestamps();
+        {%- if hasSoftDelete %}
+            $table->softDeletes();
+        {%- endif %}
         });
     }
 

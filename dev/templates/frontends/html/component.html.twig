@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ resourceUpper }} Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">{{ resourceUpper }}</h1>
+            <button onclick="toggleModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Add New</button>
+        </div>
+
+        <table class="w-full">
+            <thead>
+                <tr class="text-left border-b bg-gray-50">
+                    {% for column in columns %}
+                    <th class="p-3 text-sm font-semibold text-gray-600">{{ column.name|upper }}</th>
+                    {% endfor %}
+                    <th class="p-3 text-sm font-semibold text-gray-600 text-right">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Data will be loaded here via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Simple Modal Overlay -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex项目-center justify-center">
+        <div class="bg-white p-8 rounded-xl w-96">
+            <h2 class="text-xl font-bold mb-4" id="modal-title">Add {{ resourceUpper }}</h2>
+            <form id="crud-form">
+                {% for column in columns %}
+                {% if column.name != 'id' %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">{{ column.name }}</label>
+                    <input type="text" name="{{ column.name }}" class="w-full mt-1 p-2 border rounded-md">
+                </div>
+                {% endif %}
+                {% endfor %}
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="toggleModal()" class="text-gray-500">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const res = await fetch('/api/{{ resourcePlural }}');
+            const { data } = await res.json();
+            const body = document.getElementById('table-body');
+            body.innerHTML = data.map(item => `
+                <tr class="border-b">
+                    {% for column in columns %}
+                    <td class="p-3 text-sm text-gray-700">\${item.{{ column.name }}}</td>
+                    {% endfor %}
+                    <td class="p-3 text-right">
+                         <button class="text-indigo-600">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleModal() {
+            document.getElementById('modal').classList.toggle('hidden');
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>

@@ -1,1 +1,6 @@
-Route::apiResource('{{ resourcePlural }}', App\Http\Controllers\Api\{{ resourceUpper }}Controller::class);
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\{{ resourceUpper }}Controller;
+
+Route::prefix('api')->group(function () {
+    Route::apiResource('{{ resourcePlural }}', {{ resourceUpper }}Controller::class);
+});

@@ -84,6 +84,13 @@
             @close="showWizard = false"
             @confirm-generate="confirmGenerate"
         ></wizard-modal>
+
+        <ai-chat
+            :selected-project="selectedProject"
+            :loading="loading"
+            @add-table="addNewTable"
+            @import-project="importProject"
+        ></ai-chat>
     </div>
 
     <!-- Utils -->
@@ -95,6 +102,7 @@
     <script src="assets/components/ProjectDetails.js"></script>
     <script src="assets/components/WelcomeView.js"></script>
     <script src="assets/components/WizardModal.js"></script>
+    <script src="assets/components/AIChat.js"></script>
     
     <!-- Application Logic -->
     <script src="assets/js/app.js"></script>

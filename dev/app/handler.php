@@ -64,4 +64,69 @@ class Handler extends DB
         $importer = new Importer($this->db);
         return json_encode($importer->import($data));
     }
+    function askAI($prompt, $framework = 'Laravel', $history = [])
+    {
+        $apiKey = getenv('GROQ_API_KEY') ?: 'YOUR_GROQ_API_KEY';
+        $url = 'https://api.groq.com/openai/v1/chat/completions';
+        
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => "Kamu adalah AI Database Architect. Tugasmu membantu user merancang skema database untuk project yang menggunakan framework $framework. 
+                PENTING: Jika user meminta saran tabel, berikan penjelasan singkat di awal, lalu berikan skema dalam format JSON di dalam blok kode triple backtick (```json). 
+
+                Gunakan Bahasa Inggris untuk penamaan tabel dan kolom (snake_case).
+
+                Format JSON harus seperti ini:
+                {
+                \"tables\": [
+                    {
+                    \"name\": \"table_name\",
+                    \"columns\": [
+                        {\"name\": \"id\", \"typeData\": \"bigInteger\"},
+                        {\"name\": \"column_name\", \"typeData\": \"string\", \"size\": \"255\"}
+                    ]
+                    }
+                ]
+                }
+
+                Gunakan tipe data yang umum dan bisa digenerate: string, integer, bigInteger, text, date, timestamp, boolean, decimal."
+            ]
+        ];
+
+        // Add history
+        foreach ($history as $msg) {
+            $messages[] = [
+                'role' => $msg->role,
+                'content' => $msg->content
+            ];
+        }
+
+        // Add current prompt
+        $messages[] = ['role' => 'user', 'content' => $prompt];
+
+        $data = [
+            'model' => 'llama-3.3-70b-versatile',
+            'messages' => $messages,
+            'temperature' => 0.7
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey
+        ]);
+
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            return json_encode(['error' => 'cURL Error: ' . $err]);
+        }
+        return $response;
+    }
 }

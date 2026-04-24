@@ -21,9 +21,13 @@ class Importer
             return ['success' => false, 'message' => 'Empty content'];
         }
 
-        $nameEscaped = $this->escape($name);
-        $this->db->exec("INSERT INTO projects (name) VALUES ('$nameEscaped')");
-        $projectId = $this->db->lastInsertRowID();
+        if (isset($data->project_id) && !empty($data->project_id)) {
+            $projectId = $data->project_id;
+        } else {
+            $nameEscaped = $this->escape($name);
+            $this->db->exec("INSERT INTO projects (name) VALUES ('$nameEscaped')");
+            $projectId = $this->db->lastInsertRowID();
+        }
 
         try {
             $result = $this->parseJson($content, $projectId);
@@ -50,6 +54,16 @@ class Importer
         foreach ($data['tables'] as $table) {
             $tableName = $this->escape($table['name'] ?? 'unnamed');
             $tableComments = $this->escape($table['comments'] ?? '');
+
+            // --- SMART UPSERT LOGIC ---
+            // 1. Check if table with same name exists in THIS project
+            $existing = $this->db->querySingle("SELECT id FROM tables WHERE name = '$tableName' AND project_id = $projectId");
+            if ($existing) {
+                // 2. Delete old columns
+                $this->db->exec("DELETE FROM kolom WHERE table_id = $existing");
+                // 3. Delete old table record
+                $this->db->exec("DELETE FROM tables WHERE id = $existing");
+            }
 
             $this->db->exec("INSERT INTO tables (name, project_id) VALUES ('$tableName', $projectId)");
             $tableId = $this->db->lastInsertRowID();

@@ -373,25 +373,31 @@ const app = createApp({
             }
         };
 
-        const importProject = async ({ type, content }) => {
+        const importProject = async ({ type, content, skipProjectCreate = false }) => {
             loading.value = true;
             try {
-                // Determine a default project name from file or content
-                const projectName = prompt('Assign a name for the imported project:', 'Imported Project');
-                if (!projectName) return;
+                let projectName = null;
+                if (!skipProjectCreate) {
+                    projectName = prompt('Assign a name for the imported project:', 'Imported Project');
+                    if (!projectName) return;
+                } else {
+                    projectName = selectedProject.value.name;
+                }
                 
                 const response = await fetch(`${apiBase}?import=true`, {
                     method: 'POST',
                     body: JSON.stringify({
                         name: projectName,
                         type: type,
-                        content: content
+                        content: content,
+                        project_id: skipProjectCreate ? selectedProject.value.id : null
                     })
                 });
                 const result = await response.json();
                 if (result.success) {
                     alert('Import successful!');
                     await fetchProjects();
+                    await fetchTables(); // <--- Refresh the tables for the current project
                 } else {
                     alert('Import failed: ' + result.message);
                 }
@@ -422,5 +428,6 @@ app.component('table-view', TableView);
 app.component('project-details', ProjectDetails);
 app.component('welcome-view', WelcomeView);
 app.component('wizard-modal', WizardModal);
+app.component('ai-chat', AIChat);
 
 app.mount('#app');

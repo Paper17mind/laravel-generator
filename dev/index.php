@@ -1,5 +1,17 @@
 <?php
-#&
+// Load .env file
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            putenv(trim($name) . '=' . trim($value));
+        }
+    }
+}
+
 header('Access-Control-Allow-Origin:*');
 header('Access-Control-Allow-Methods:*' /*,"POST,GET,OPTIONS, PUT, DELETE"*/);
 header('Access-Control-Allow-Headers:*');
@@ -51,6 +63,11 @@ if (isset($_GET['method'])) {
             ? $h->create($_GET['generate'], $wizardData)
             : $h->createCols($_GET['generate'], $wizardData);
     }
+} elseif (isset($_GET['chat'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    $framework = $data->framework ?? 'Laravel';
+    $history = $data->history ?? [];
+    echo $h->askAI($data->prompt, $framework, $history);
 } elseif (isset($_GET['view'])) {
     $parent = $_GET['parent'];
     $childs = $_GET['child'];

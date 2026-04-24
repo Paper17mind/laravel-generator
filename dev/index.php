@@ -1,4 +1,10 @@
 <?php
+
+use app\Query;
+use app\Handler;
+use controller\Kolom;
+use controller\Table;
+use route\Router;
 // Load .env file
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile)) {
@@ -26,13 +32,9 @@ require __DIR__ . '/Route.php';
 define('root', str_replace('/var/www/html', null, __DIR__));
 define('request', str_replace(root, null, $_SERVER['REQUEST_URI']));
 
-use app\DB;
-use app\Handler;
-use controller\Kolom;
-use controller\Table;
-use route\Router;
 
-$q = new DB();
+
+$q = new Query();
 $r = new Router();
 $col = new Kolom();
 $tab = new Table();

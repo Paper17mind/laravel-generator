@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Models\{{ resourceUpper }};
+use Illuminate\Http\Request;
+
+class {{ resourceUpper }}Controller extends Controller
+{
+    public function index()
+    {
+        return response()->json([
+            'data' => {{ resourceUpper }}::all(),
+            'message' => 'Data retrieved successfully'
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        ${{ resourceCamel }} = {{ resourceUpper }}::create($request->all());
+        return response()->json([
+            'data' => ${{ resourceCamel }},
+            'message' => 'Resource created successfully'
+        ], 201);
+    }
+
+    public function show($id)
+    {
+        return response()->json([
+            'data' => {{ resourceUpper }}::findOrFail($id)
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        ${{ resourceCamel }} = {{ resourceUpper }}::findOrFail($id);
+        ${{ resourceCamel }}->update($request->all());
+        return response()->json([
+            'data' => ${{ resourceCamel }}
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        {{ resourceUpper }}::findOrFail($id)->delete();
+        return response()->json(['message' => 'Deleted']);
+    }
+}

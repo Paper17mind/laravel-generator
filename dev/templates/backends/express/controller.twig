@@ -1,0 +1,57 @@
+const express = require('express');
+const router = express.Router();
+const {{ resourceUpper }} = require('../models/{{ resourceUpper }}');
+
+// Index
+router.get('/', async (req, res) => {
+    try {
+        const data = await {{ resourceUpper }}.find();
+        res.json({ data, message: 'Data retrieved successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Store
+router.post('/', async (req, res) => {
+    const {{ resourceCamel }} = new {{ resourceUpper }}(req.body);
+    try {
+        const newData = await {{ resourceCamel }}.save();
+        res.status(201).json({ data: newData, message: 'Resource created successfully' });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Show
+router.get('/:id', async (req, res) => {
+    try {
+        const data = await {{ resourceUpper }}.findById(req.params.id);
+        if (!data) return res.status(404).json({ message: 'Not found' });
+        res.json({ data });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Update
+router.put('/:id', async (req, res) => {
+    try {
+        const data = await {{ resourceUpper }}.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json({ data });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Destroy
+router.delete('/:id', async (req, res) => {
+    try {
+        await {{ resourceUpper }}.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+module.exports = router;

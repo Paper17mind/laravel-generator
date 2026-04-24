@@ -1,0 +1,205 @@
+{% set ov = '{{' %}{% set cv = '}}' %}
+<template>
+  <q-page class="q-pa-md">
+    <!-- Header Section -->
+    <div class="row items-center q-mb-lg">
+      <div class="col">
+        <div class="text-h4 text-weight-bold text-primary">{{ resourceUpper }}</div>
+        <div class="text-subtitle2 text-grey-7">Manage your {{ resourcePlural }} records efficiently</div>
+      </div>
+      <div class="col-auto">
+        <q-btn 
+          color="primary" 
+          icon="add" 
+          label="Add {{ resourceUpper }}" 
+          class="q-px-md" 
+          rounded 
+          unelevated
+          @click="openModal()" 
+        />
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <q-card flat bordered class="rounded-borders shadow-1">
+      <q-table
+        :rows="items"
+        :columns="tableColumns"
+        row-key="id"
+        flat
+        :loading="loading"
+      >
+        <template v-slot:body-cell-actions="props">
+          <q-td :props="props" class="text-right">
+            <q-btn-group flat>
+              <q-btn 
+                flat 
+                round 
+                color="indigo" 
+                icon="edit" 
+                size="sm"
+                @click="openModal(props.row)" 
+              >
+                <q-tooltip>Edit Item</q-tooltip>
+              </q-btn>
+              <q-btn 
+                flat 
+                round 
+                color="negative" 
+                icon="delete" 
+                size="sm"
+                @click="deleteItem(props.row.id)" 
+              >
+                <q-tooltip>Delete Item</q-tooltip>
+              </q-btn>
+            </q-btn-group>
+          </q-td>
+        </template>
+
+        <!-- No Data Slot -->
+        <template v-slot:no-data>
+          <div class="full-width row flex-center q-pa-xl text-grey-6">
+            <q-icon name="sentiment_dissatisfied" size="48px" class="q-mr-sm" />
+            <div class="text-h6">No data found in {{ resourcePlural }}</div>
+          </div>
+        </template>
+      </q-table>
+    </q-card>
+
+    <!-- CRUD Form Dialog -->
+    <q-dialog v-model="isModalOpen" persistent>
+      <q-card style="width: 500px; max-width: 90vw; border-radius: 12px;">
+        <q-form @submit="saveItem">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6 font-bold">{{ ov }} form.id ? 'Edit' : 'Create New' {{ cv }} {{ resourceUpper }}</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section class="q-gutter-md q-pt-lg">
+            {% for column in columns %}
+            {% if column.name != 'id' %}
+            <q-input 
+              v-model="form.{{ column.name }}" 
+              label="{{ column.name|title }}" 
+              filled 
+              placeholder="Enter {{ column.name }}"
+              :rules="[val => !!val || 'Field is required']"
+            />
+            {% endif %}
+            {% endfor %}
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn flat label="Cancel" color="grey-7" v-close-popup class="q-px-md" />
+            <q-btn 
+              unelevated 
+              :label="form.id ? 'Save Changes' : 'Create Now'" 
+              color="primary" 
+              type="submit" 
+              class="q-px-lg"
+              rounded
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+  </q-page>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+const items = ref([])
+const loading = ref(false)
+const isModalOpen = ref(false)
+
+const form = reactive({
+  id: null,
+  {% for column in columns %}
+  {% if column.name != 'id' %}
+  {{ column.name }}: '',
+  {% endif %}
+  {% endfor %}
+})
+
+const tableColumns = [
+  {% for column in columns %}
+  { name: '{{ column.name }}', label: '{{ column.name|upper }}', field: '{{ column.name }}', align: 'left', sortable: true },
+  {% endfor %}
+  { name: 'actions', label: 'ACTIONS', field: 'actions', align: 'right' }
+]
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const res = await fetch('/api/{{ resourcePlural }}')
+    const json = await res.json()
+    items.value = json.data
+  } catch (e) {
+    $q.notify({ color: 'negative', message: 'Failed to fetch data' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const openModal = (item = null) => {
+  if (item) {
+    Object.assign(form, item)
+  } else {
+    form.id = null
+    {% for column in columns %}
+    {% if column.name != 'id' %}
+    form.{{ column.name }} = ''
+    {% endif %}
+    {% endfor %}
+  }
+  isModalOpen.value = true
+}
+
+const saveItem = async () => {
+  $q.loading.show()
+  const method = form.id ? 'PUT' : 'POST'
+  const url = form.id ? `/api/{{ resourcePlural }}/${form.id}` : '/api/{{ resourcePlural }}'
+  
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
+    if (res.ok) {
+      $q.notify({ color: 'positive', message: 'Success!' })
+      isModalOpen.value = false
+      fetchData()
+    }
+  } catch (e) {
+    $q.notify({ color: 'negative', message: 'Operation failed' })
+  } finally {
+    $q.loading.hide()
+  }
+}
+
+const deleteItem = (id) => {
+  $q.dialog({
+    title: 'Confirm Delete',
+    message: 'Are you sure you want to remove this record?',
+    cancel: true,
+    persistent: true
+  }).onOk(async () => {
+    try {
+      const res = await fetch(`/api/{{ resourcePlural }}/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        $q.notify({ color: 'positive', message: 'Deleted successfully' })
+        fetchData()
+      }
+    } catch (e) {
+      $q.notify({ color: 'negative', message: 'Delete failed' })
+    }
+  })
+}
+
+onMounted(fetchData)
+</script>

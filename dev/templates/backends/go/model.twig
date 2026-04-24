@@ -1,0 +1,14 @@
+package models
+
+import "time"
+
+type {{ resourceUpper }} struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+{% for column in columns %}
+    {% if column.name != 'id' %}
+	{{ column.name|studly }} {{ column.typeData == 'integer' or column.typeData == 'bigInteger' ? 'int' : 'string' }} `json:"{{ column.name|camel }}"`
+    {% endif %}
+{% endfor %}
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}

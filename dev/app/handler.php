@@ -45,17 +45,16 @@ class Handler extends DB
     {
         return $this->runQuery($q);
     }
-    function create($id)
+    function create($id, $wizardData = null)
     {
-        return $this->generate($id);
+        return $this->generate($id, $wizardData);
     }
-    function createCols($id)
+    function createCols($id, $wizardData = null)
     {
-        return $this->generateCols($id);
+        return $this->generateCols($id, $wizardData);
+    }
+    function preview($data, $projectId)
+    {
+        return $this->getPreview($data, $projectId);
     }
 }
-// echo $db->get('tables');
-// echo $db->insert('kolom', $columns, $values);
-// echo $db->update('kolom', 0, $columns, $values);
-// echo $db->destroy('kolom', 0);
-// echo $db->join('tables', 'kolom', 'tables.id', 'table_id');

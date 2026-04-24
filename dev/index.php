@@ -4,6 +4,7 @@ header('Access-Control-Allow-Origin:*');
 header('Access-Control-Allow-Methods:*' /*,"POST,GET,OPTIONS, PUT, DELETE"*/);
 header('Access-Control-Allow-Headers:*');
 // header('Method:POST');
+require_once __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/app/Query.php';
 require __DIR__ . '/app/handler.php';
 require __DIR__ . '/app/controller/kolom.php';
@@ -52,18 +53,22 @@ if (isset($_GET['method'])) {
         echo $tab->filters($_GET);
     }
 } elseif (isset($_GET['query'])) {
-    if (Authorize() === 'OK') {
-        echo $h->query($_GET['query']);
-    }
+    // if (Authorize() === 'OK') {
+    echo $h->query($_GET['query']);
+    // }
 } elseif (isset($_GET['exec'])) {
     // if (Authorize() === 'OK') {
     echo $h->execute($_GET['exec']);
     // }
+} elseif (isset($_GET['preview'])) {
+    $data = json_decode(file_get_contents('php://input'));
+    echo $h->preview($data, $_GET['project_id']);
 } elseif (isset($_GET['generate'])) {
     if (isset($_GET['type'])) {
+        $wizardData = json_decode(file_get_contents('php://input'), true);
         echo $_GET['type'] === 'project'
-            ? $h->create($_GET['generate'])
-            : $h->createCols($_GET['generate']);
+            ? $h->create($_GET['generate'], $wizardData)
+            : $h->createCols($_GET['generate'], $wizardData);
     }
 } elseif (isset($_GET['view'])) {
     $parent = $_GET['parent'];
@@ -96,12 +101,3 @@ function Authorize()
         echo json_encode(['code' => 401, 'status' => 'Unauthorized']);
     }
 }
-// echo implode(array_keys(['name' => 'sada'])) === 'name' ? 'true'  =>  'false';
-// $r->add('/kolom', '2321');
-// print_r($r->list());
-// echo in_array(request, $route);
-// include 'views/forms.php';
-// print_r($_GET);
-// print_r($_POST);
-// print_r($data);
-// echo json_encode($_REQUEST);

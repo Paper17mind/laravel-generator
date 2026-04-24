@@ -1,0 +1,38 @@
+package services
+
+import (
+	"project/models"
+	"project/config"
+)
+
+type {{ resourceUpper }}Service struct{}
+
+func (s *{{ resourceUpper }}Service) GetAll() ([]models.{{ resourceUpper }}, error) {
+	var items []models.{{ resourceUpper }}
+	err := config.DB.Find(&items).Error
+	return items, err
+}
+
+func (s *{{ resourceUpper }}Service) Create(data models.{{ resourceUpper }}) (models.{{ resourceUpper }}, error) {
+	err := config.DB.Create(&data).Error
+	return data, err
+}
+
+func (s *{{ resourceUpper }}Service) GetByID(id string) (models.{{ resourceUpper }}, error) {
+	var item models.{{ resourceUpper }}
+	err := config.DB.First(&item, id).Error
+	return item, err
+}
+
+func (s *{{ resourceUpper }}Service) Update(id string, data models.{{ resourceUpper }}) (models.{{ resourceUpper }}, error) {
+	var item models.{{ resourceUpper }}
+	if err := config.DB.First(&item, id).Error; err != nil {
+		return item, err
+	}
+	config.DB.Model(&item).Updates(data)
+	return item, nil
+}
+
+func (s *{{ resourceUpper }}Service) Delete(id string) error {
+	return config.DB.Delete(&models.{{ resourceUpper }}{}, id).Error
+}

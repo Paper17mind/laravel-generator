@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class {{ resourceUpper }} extends Model
+{
+    protected $table = '{{ resourcePlural }}';
+    
+    protected $fillable = [
+    {%- for column in columns %}
+        '{{ column.name }}',
+    {%- endfor %}
+    ];
+}

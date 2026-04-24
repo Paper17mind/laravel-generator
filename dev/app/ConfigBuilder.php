@@ -1,44 +1,33 @@
 <?php
 
-namespace App;
+namespace app;
 
 class ConfigBuilder
 {
     private $config = [];
     
-    public function __construct()
+    public function __construct(array $initialData = [])
     {
-        $this->initializeDefaults();
+        $this->initializeDefaults($initialData);
     }
     
-    private function initializeDefaults()
+    private function initializeDefaults(array $data)
     {
         $this->config = [
-            'projectName' => '',
-            'resourceName' => '',
+            'projectName' => $data['name'] ?? '',
             'backend' => [
-                'framework' => 'laravel',
+                'framework' => $data['backend_framework'] ?? 'laravel',
                 'components' => [
                     'controller' => true,
                     'model' => true,
                     'migration' => true,
                     'routes' => true,
-                    'middleware' => false,
-                    'unitTest' => false,
                 ]
             ],
             'frontend' => [
-                'framework' => 'vue3',
-                'uiFramework' => 'tailwind',
+                'framework' => $data['frontend_framework'] ?? 'vue3',
                 'components' => [
                     'page' => true,
-                    'composable' => true,
-                    'service' => true,
-                ]
-            ],
-            'database' => [
-                'columns' => [
-                    ['name' => 'id', 'type' => 'integer', 'nullable' => false],
                 ]
             ]
         ];
@@ -55,21 +44,13 @@ class ConfigBuilder
         return $this->config;
     }
     
-    public function setProjectName(string $name): self
+    public function getBackendFramework(): string
     {
-        $this->config['projectName'] = $name;
-        return $this;
+        return $this->config['backend']['framework'];
     }
-    
-    public function setResourceName(string $name): self
+
+    public function getFrontendFramework(): string
     {
-        $this->config['resourceName'] = $name;
-        return $this;
-    }
-    
-    public function setBackendFramework(string $framework): self
-    {
-        $this->config['backend']['framework'] = $framework;
-        return $this;
+        return $this->config['frontend']['framework'];
     }
 }

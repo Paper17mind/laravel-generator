@@ -87,7 +87,7 @@ class DB extends Config
     }
 
     // generate
-    function generate($id)
+    function generate($id, $wizardData = null)
     {
         $arr = $this->join(
             'tables',
@@ -97,28 +97,33 @@ class DB extends Config
             'project_id',
             $id
         );
-        $ret = [];
-        foreach (json_decode($arr) as $val) {
-            $this->createController($val, $id);
+        $decoded = json_decode($arr);
+        if (is_array($decoded) || is_object($decoded)) {
+            foreach ($decoded as $val) {
+                $this->createController($val, $id, $wizardData);
+            }
         }
-        // return 'processing';
+        return "Success generating project $id";
     }
-    function generateCols($id)
+    function generateCols($id, $wizardData = null)
     {
         $arr = $this->join('tables', 'kolom', 'table_id', 'id', 'id', $id);
-        $ret = [];
-        foreach (json_decode($arr) as $val) {
-            $this->createController($val, $id);
+        $decoded = json_decode($arr);
+        if (is_array($decoded) || is_object($decoded)) {
+            foreach ($decoded as $val) {
+                $this->createController($val, $id, $wizardData);
+            }
         }
-        // return 'processing';
+        return "Success generating table $id";
     }
     function join($table, $ch, $dest, $params, $where = null, $idParam = null)
     {
         $arr = [];
         $res = [];
         if ($idParam != null) {
+            $val = is_numeric($idParam) ? $idParam : "'$idParam'";
             $ret = $this->db->query(
-                "select * from $table where $where = $idParam"
+                "select * from $table where $where = $val"
             );
         } else {
             $ret = $this->db->query("select * from $table");

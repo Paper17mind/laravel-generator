@@ -1,0 +1,21 @@
+import { test } from '@japa/runner'
+import {{ resourceUpper }} from 'App/Models/{{ resourceUpper }}'
+
+test.group('{{ resourceUpper }}', () => {
+  test('get list of {{ resourcePlural }}', async ({ client }) => {
+    const response = await client.get('/{{ resource|lower }}s')
+    response.assertStatus(200)
+    response.assertBodyContains({ message: 'Data retrieved successfully' })
+  })
+
+  test('create {{ resourceUpper }}', async ({ client }) => {
+    const response = await client.post('/{{ resource|lower }}s').json({
+      {%- for column in columns %}
+      {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+      '{{ column.name }}': '{% if column.type == 'integer' %}1{% else %}test_{{ column.name }}{% endif %}',
+      {%- endif %}
+      {%- endfor %}
+    })
+    response.assertStatus(201)
+  })
+})

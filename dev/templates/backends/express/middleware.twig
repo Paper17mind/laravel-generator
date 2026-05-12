@@ -1,0 +1,7 @@
+const {{ resourceUpper }}Middleware = (req, res, next) => {
+    // Logic for {{ resourceUpper }} middleware
+    console.log(`{{ resourceUpper }} Middleware: ${req.method} ${req.url}`);
+    next();
+};
+
+module.exports = {{ resourceUpper }}Middleware;

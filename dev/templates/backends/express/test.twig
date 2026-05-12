@@ -1,0 +1,25 @@
+const request = require('supertest');
+const app = require('../app');
+const {{ resourceUpper }} = require('../models/{{ resourceUpper }}');
+
+describe('{{ resourceUpper }} API', () => {
+    it('should get all {{ resourcePlural }}', async () => {
+        const res = await request(app).get('/{{ resource|lower }}');
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.success).toBe(true);
+    });
+
+    it('should create a new {{ resource|lower }}', async () => {
+        const res = await request(app)
+            .post('/{{ resource|lower }}')
+            .send({
+                {%- for column in columns %}
+                {%- if column.name != 'id' and column.name != 'created_at' and column.name != 'updated_at' %}
+                {{ column.name }}: '{% if column.type == 'integer' %}1{% else %}test{% endif %}',
+                {%- endif %}
+                {%- endfor %}
+            });
+        expect(res.statusCode).toEqual(201);
+        expect(res.body.success).toBe(true);
+    });
+});

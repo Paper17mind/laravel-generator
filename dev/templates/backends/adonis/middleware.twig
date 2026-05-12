@@ -1,0 +1,9 @@
+import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+
+export default class {{ resourceUpper }}Middleware {
+  public async handle({ request, response }: HttpContextContract, next: () => Promise<void>) {
+    // Logic for {{ resourceUpper }} middleware
+    console.log(`Request to {{ resourceUpper }}: ${request.method()} ${request.url()}`)
+    await next()
+  }
+}

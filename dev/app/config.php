@@ -88,8 +88,13 @@ class Config
             @mkdir("$base/database/migrations", 0777, true);
             @mkdir("$base/routes", 0777, true);
             
+            @mkdir("$base/app/Http/Middleware", 0777, true);
+            @mkdir("$base/tests/Feature", 0777, true);
+            
             file_put_contents("$base/app/Http/Controllers/Api/{$context['resourceUpper']}Controller.php", $this->engine->render("backends/laravel/controller.twig", $context));
             file_put_contents("$base/app/Models/{$context['resourceUpper']}.php", $this->engine->render("backends/laravel/model.twig", $context));
+            file_put_contents("$base/app/Http/Middleware/{$context['resourceUpper']}Middleware.php", $this->engine->render("backends/laravel/middleware.twig", $context));
+            file_put_contents("$base/tests/Feature/{$context['resourceUpper']}Test.php", $this->engine->render("backends/laravel/test.twig", $context));
             file_put_contents("$base/database/migrations/" . date('Y_m_d_His') . "_create_{$resource}_table.php", $this->engine->render("backends/laravel/migration.twig", $context));
             // For routes, we might want to overwrite or append. Let's overwrite for simplicity in this version
             file_put_contents("$base/routes/api.php", $this->engine->render("backends/laravel/routes.twig", $context));
@@ -99,8 +104,13 @@ class Config
             @mkdir("$base/models", 0777, true);
             @mkdir("$base/routes", 0777, true);
 
+            @mkdir("$base/middlewares", 0777, true);
+            @mkdir("$base/tests", 0777, true);
+ 
             file_put_contents("$base/controllers/{$context['resourceUpper']}Controller.js", $this->engine->render("backends/express/controller.twig", $context));
             file_put_contents("$base/models/{$context['resourceUpper']}.js", $this->engine->render("backends/express/model.twig", $context));
+            file_put_contents("$base/middlewares/{$context['resourceUpper']}Middleware.js", $this->engine->render("backends/express/middleware.twig", $context));
+            file_put_contents("$base/tests/{$context['resourceUpper']}.test.js", $this->engine->render("backends/express/test.twig", $context));
             file_put_contents("$base/routes/{$resource}.js", $this->engine->render("backends/express/controller.twig", $context)); // Using controller.twig as it contains routes in express template
         } elseif ($backendFramework === 'go') {
             $base = "$project_dir/backend";
@@ -108,16 +118,26 @@ class Config
             @mkdir("$base/models", 0777, true);
             @mkdir("$base/services", 0777, true);
 
+            @mkdir("$base/middlewares", 0777, true);
+            @mkdir("$base/tests", 0777, true);
+ 
             file_put_contents("$base/controllers/{$context['resourceUpper']}Controller.go", $this->engine->render("backends/go/controller.twig", $context));
             file_put_contents("$base/models/{$context['resourceUpper']}.go", $this->engine->render("backends/go/model.twig", $context));
             file_put_contents("$base/services/{$context['resourceUpper']}Service.go", $this->engine->render("backends/go/service.twig", $context));
+            file_put_contents("$base/middlewares/{$context['resourceUpper']}Middleware.go", $this->engine->render("backends/go/middleware.twig", $context));
+            file_put_contents("$base/tests/{$context['resourceUpper']}_test.go", $this->engine->render("backends/go/test.twig", $context));
         } elseif ($backendFramework === 'adonis') {
             $base = "$project_dir/backend";
             @mkdir("$base/app/Controllers/Http", 0777, true);
             @mkdir("$base/app/Models", 0777, true);
 
+            @mkdir("$base/app/Middleware", 0777, true);
+            @mkdir("$base/tests/functional", 0777, true);
+ 
             file_put_contents("$base/app/Controllers/Http/{$context['resourceUpper']}Controller.ts", $this->engine->render("backends/adonis/controller.twig", $context));
             file_put_contents("$base/app/Models/{$context['resourceUpper']}.ts", $this->engine->render("backends/adonis/model.twig", $context));
+            file_put_contents("$base/app/Middleware/{$context['resourceUpper']}Middleware.ts", $this->engine->render("backends/adonis/middleware.twig", $context));
+            file_put_contents("$base/tests/functional/{$context['resourceUpper']}.spec.ts", $this->engine->render("backends/adonis/test.twig", $context));
         }
 
         // 4. Generate Frontend Assets
@@ -212,14 +232,22 @@ class Config
         $previews = [];
         if ($backendFramework === 'laravel') {
             $previews[] = ['name' => "Controller.php", 'language' => 'php', 'content' => $this->engine->render("backends/laravel/controller.twig", $context)];
+            $previews[] = ['name' => "Middleware.php", 'language' => 'php', 'content' => $this->engine->render("backends/laravel/middleware.twig", $context)];
+            $previews[] = ['name' => "Test.php", 'language' => 'php', 'content' => $this->engine->render("backends/laravel/test.twig", $context)];
         } elseif ($backendFramework === 'adonis') {
             $previews[] = ['name' => "Controller.ts", 'language' => 'typescript', 'content' => $this->engine->render("backends/adonis/controller.twig", $context)];
+            $previews[] = ['name' => "Middleware.ts", 'language' => 'typescript', 'content' => $this->engine->render("backends/adonis/middleware.twig", $context)];
+            $previews[] = ['name' => "Test.ts", 'language' => 'typescript', 'content' => $this->engine->render("backends/adonis/test.twig", $context)];
         } elseif ($backendFramework === 'express') {
             $previews[] = ['name' => "Controller.js", 'language' => 'javascript', 'content' => $this->engine->render("backends/express/controller.twig", $context)];
+            $previews[] = ['name' => "Middleware.js", 'language' => 'javascript', 'content' => $this->engine->render("backends/express/middleware.twig", $context)];
+            $previews[] = ['name' => "Test.js", 'language' => 'javascript', 'content' => $this->engine->render("backends/express/test.twig", $context)];
         } elseif ($backendFramework === 'go' || $backendFramework === 'golang') {
             $previews[] = ['name' => "controller.go", 'language' => 'go', 'content' => $this->engine->render("backends/go/controller.twig", $context)];
             $previews[] = ['name' => "service.go", 'language' => 'go', 'content' => $this->engine->render("backends/go/service.twig", $context)];
             $previews[] = ['name' => "model.go", 'language' => 'go', 'content' => $this->engine->render("backends/go/model.twig", $context)];
+            $previews[] = ['name' => "middleware.go", 'language' => 'go', 'content' => $this->engine->render("backends/go/middleware.twig", $context)];
+            $previews[] = ['name' => "test.go", 'language' => 'go', 'content' => $this->engine->render("backends/go/test.twig", $context)];
         }
 
         if ($frontendFramework === 'vue3') {

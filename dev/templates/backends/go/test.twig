@@ -1,0 +1,18 @@
+package tests
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGet{{ resourceUpper }}(t *testing.T) {
+	router := SetupRouter() // Assume a setup function exists
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/{{ resource|lower }}", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+}
